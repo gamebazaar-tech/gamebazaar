@@ -245,7 +245,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.4 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.6 Space</div>
   </div>
 </footer>
 
@@ -255,8 +255,8 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.4: список пользователей в админке — живой (обновляется сам),
-   исправлены «гонки» вкладок админ-панели
+   v3.6: исправлен фильтр цифр в полях ID (съедался ввод),
+   живой кэш пользователей из v3.5 сохранён
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -322,7 +322,7 @@ function viewAuth(mode){
   return `
   <div class="auth-card card">
     <h2 style="margin-bottom:6px">${reg?'Регистрация':'Вход'}</h2>
-    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунт'}</p>
+    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунt'}</p>
     <div class="auth-tabs">
       <button class="${reg?'':'active'}" onclick="authMode='login';render()">Вход</button>
       <button class="${reg?'active':''}" onclick="authMode='reg';render()">Регистрация</button>
@@ -475,7 +475,6 @@ function render(){
   closeModal();
   if(path!=='lot') detachLotChat();
   if(path!=='inbox') dmCloseChatListener();
-  if(path!=='admin') admDetachUsers();
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
   const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin, inbox:viewInbox};
@@ -484,7 +483,7 @@ function render(){
 }
 window.addEventListener('hashchange', render);
 
-/* ===================== ГЛОБАЛЬНЫЙ СПИСОК ЛОТОВ ===================== */
+/* ===================== ЖИВЫЕ КЭШИ: ЛОТЫ И ПОЛЬЗОВАТЕЛИ ===================== */
 let catGame='', catCat='';
 db.ref('lots').on('value', snap=>{
   try{
@@ -495,8 +494,18 @@ db.ref('lots').on('value', snap=>{
     renderMyLots();
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='lot' && curLotId) renderLotPage();
-    if(path==='admin') renderAdminData();
+    if(path==='admin') refreshAdminLive();
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
+});
+window._users = null;
+db.ref('users').on('value', snap=>{
+  try{
+    const arr=[];
+    if(snap && snap.forEach) snap.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
+    arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
+    window._users = arr;
+    refreshAdminLive();
+  }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
 });
 
 /* ===================== ГЛАВНАЯ ===================== */
@@ -551,7 +560,7 @@ function viewCatalog(){
   $('app').innerHTML = `
     <h2>Каталог</h2>
     <div class="filters" id="fGames"></div>
-    <div class="filters" id="fCats"></div>
+    <divs></divs>
     <div class="lots-grid" id="lotsGrid"></div>`;
   renderFilters();
   renderLots();
@@ -719,9 +728,7 @@ async function sendChatMsg(lotId){
   });
 }
 
-/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ =====================
-   dmChats/{ключ}/meta — участники, профили, счётчики непрочитанных.
-   Ключ = два uid по алфавиту через __. */
+/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ ===================== */
 let dmChatsCache = null;
 let dmOpenChatId = null;
 let dmChatUnsub = null;
@@ -770,7 +777,7 @@ function viewInbox(){
         <div class="card" style="padding:14px">
           <label style="margin-top:0">Начать чат по ID сайта</label>
           <div class="row" style="flex-wrap:nowrap">
-            <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric" oninput="this.value=this.value.replace(/[^\d]/g,'')">
+            <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
             <button class="btn small" onclick="dmStartById()">Открыть</button>
           </div>
           <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… ${isOwnerAdmin()?'Вы админ: можете написать любому пользователю (все ID — в админ-панели, вкладка «Пользователи»).':'ID пользователя смотрите в его профиле или спросите у него.'}</div>
@@ -1024,7 +1031,7 @@ function viewProfile(){
         </div>
         <div class="row" style="margin-left:auto">
           <button class="btn ghost small" onclick="editProfile()">Изменить профиль</button>
-          <button class="btn ghost small" onclick="doLogout()">Выйти</button>
+          <button class="btn ghost small" contextmenu="return false">Выйти</button>
         </div>
       </div>
       <div class="balance-big">
@@ -1068,84 +1075,94 @@ async function saveProfile(){
 
 /* ===================== АДМИН-ПАНЕЛЬ ===================== */
 let admTab = 'overview';
-let admUsersUnsub = null;
-let admToken = 0; /* защита от «гонок»: устаревшие ответы базы игнорируются */
 
-function admDetachUsers(){
-  if(admUsersUnsub){ admUsersUnsub(); admUsersUnsub=null; }
+function switchAdmTab(t){
+  admTab = t;
+  const wrap = $('admTabs');
+  if(wrap) wrap.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
+  renderAdminData();
 }
 function viewAdmin(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
   if(!isOwnerAdmin()){ $('app').innerHTML = '<div class="card">Доступ только для администрации.</div>'; return; }
   $('app').innerHTML = `
     <h2>Админ-панель</h2>
-    <div class="tabs" style="margin-top:14px">
-      <button class="tab ${admTab==='overview'?'active':''}" onclick="admTab='overview';renderAdminData()">Обзор</button>
-      <button class="tab ${admTab==='deposits'?'active':''}" onclick="admTab='deposits';renderAdminData()">Начисление</button>
-      <button class="tab ${admTab==='lots'?'active':''}" onclick="admTab='lots';renderAdminData()">Лоты</button>
-      <button class="tab ${admTab==='users'?'active':''}" onclick="admTab='users';renderAdminData()">Пользователи</button>
-      <button class="tab ${admTab==='logs'?'active':''}" onclick="admTab='logs';renderAdminData()">Логи</button>
+    <div class="tabs" id="admTabs" style="margin-top:14px">
+      <button class="tab ${admTab==='overview'?'active':''}" data-tab="overview" onclick="switchAdmTab('overview')">Обзор</button>
+      <button class="tab ${admTab==='deposits'?'active':''}" data-tab="deposits" onclick="switchAdmTab('deposits')">Начисление</button>
+      <button class="tab ${admTab==='lots'?'active':''}" data-tab="lots" onclick="switchAdmTab('lots')">Лоты</button>
+      <button class="tab ${admTab==='users'?'active':''}" data-tab="users" onclick="switchAdmTab('users')">Пользователи</button>
+      <button class="tab ${admTab==='logs'?'active':''}" data-tab="logs" onclick="switchAdmTab('logs')">Логи</button>
     </div>
     <div class="card" style="margin-top:16px" id="admBox">Загрузка…</div>`;
   renderAdminData();
 }
 function renderAdminData(){
   const box = $('admBox'); if(!box || !isOwnerAdmin()) return;
-  admToken++; const token = admToken;
-  admDetachUsers();
-  if(admTab==='overview') renderAdmStats(box, token);
-  else if(admTab==='deposits') renderAdmDeposit(box, token);
-  else if(admTab==='lots') renderAdmLots(box);
-  else if(admTab==='users') renderAdmUsers(box, token);
-  else renderAdmLogs(box, token);
+  if(admTab==='overview'){
+    box.innerHTML = `
+      <h3 style="margin-bottom:14px">Обзор</h3>
+      <div class="stat-grid" id="admStatGrid"><span class="muted small">Считаем…</span></div>
+      <div class="notice" style="margin-top:16px">Начисления балансу — на вкладке «Начисление» по ID пользователя. Минимум пополнения на сайте: ${MIN_DEPOSIT} ₽.</div>`;
+    drawAdmOverview();
+  } else if(admTab==='deposits'){
+    box.innerHTML = `
+      <h3>Начисление баланса по ID</h3>
+      <p class="muted small">Введите ID пользователя (простое число: 1, 2, 3…) и сумму зачисления. Можно кликнуть по пользователю ниже — ID подставится сам.</p>
+      <div class="row" style="margin-top:10px">
+        <input id="depId" placeholder="Например: 2" style="max-width:220px" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <input id="depAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
+        <button class="btn" onclick="adminDeposit()">Начислить</button>
+      </div>
+      <div class="err" id="depErr"></div>
+      <div id="depRes"></div>
+      <div style="margin-top:16px">
+        <div class="muted small" style="margin-bottom:8px">Пользователи сайта (клик — подставить ID):</div>
+        <div class="row" id="depUsers"><span class="muted small">Загрузка…</span></div>
+      </div>`;
+    drawDepChips();
+  } else if(admTab==='lots'){
+    box.innerHTML = `<h3>Все лоты</h3><div id="admLotsBox"><span class="muted small">Загрузка…</span></div>`;
+    drawAdmLots();
+  } else if(admTab==='users'){
+    box.innerHTML = `
+      <h3>Пользователи</h3>
+      <div class="muted small" style="margin-bottom:10px">Если у кого-то из старых аккаунтов ID «0» — пусть он просто зайдёт на сайт, ID присвоится автоматически.</div>
+      <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
+    drawAdmUsersTable();
+  } else {
+    box.innerHTML = `<h3>Логи действий</h3><div id="admLogsBox"><span class="muted small">Загрузка…</span></div>`;
+    renderAdmLogs();
+  }
 }
-function renderAdmStats(box, token){
-  box.innerHTML = `
-    <h3 style="margin-bottom:14px">Обзор</h3>
-    <div class="stat-grid" id="admStatGrid"><span class="muted small">Считаем…</span></div>
-    <div class="notice" style="margin-top:16px">Начисления балансу — на вкладке «Начисление» по ID пользователя. Минимум пополнения на сайте: ${MIN_DEPOSIT} ₽.</div>`;
-  const draw = (usersCount)=>{
-    if(token!==admToken) return;
-    const all = window._lots||[];
-    const sold = all.filter(l=>l.status==='sold');
-    const revenue = sold.reduce((s,l)=>s+Number(l.price||0),0);
-    const grid = $('admStatGrid'); if(!grid) return;
-    grid.innerHTML = `
-      <div class="stat"><div class="n">${usersCount}</div><div class="l">Пользователей</div></div>
-      <div class="stat"><div class="n">${all.length}</div><div class="l">Всего лотов</div></div>
-      <div class="stat"><div class="n">${all.filter(l=>l.status!=='sold').length}</div><div class="l">Активных лотов</div></div>
-      <div class="stat"><div class="n">${sold.length}</div><div class="l">Продано</div></div>
-      <div class="stat"><div class="n">${fmt(revenue)} ₽</div><div class="l">Оборот продаж</div></div>`;
-  };
-  db.ref('users').once('value').then(s=>{
-    let n=0; if(s && s.forEach) s.forEach(()=>n++);
-    draw(n);
-  }).catch(()=>draw(0));
+function refreshAdminLive(){
+  const path=(location.hash.slice(1)||'home').split('?')[0];
+  if(path!=='admin' || !isOwnerAdmin() || !$('admBox')) return;
+  if(admTab==='overview') drawAdmOverview();
+  else if(admTab==='deposits') drawDepChips();
+  else if(admTab==='lots') drawAdmLots();
+  else if(admTab==='users') drawAdmUsersTable();
 }
-function renderAdmDeposit(box, token){
-  box.innerHTML = `
-    <h3>Начисление баланса по ID</h3>
-    <p class="muted small">Введите ID пользователя (простое число: 1, 2, 3…) и сумму зачисления. Можно кликнуть по пользователю ниже — ID подставится сам.</p>
-    <div class="row" style="margin-top:10px">
-      <input id="depId" placeholder="Например: 2" style="max-width:220px" inputmode="numeric" oninput="this.value=this.value.replace(/[^\d]/g,'')">
-      <input id="depAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
-      <button class="btn" onclick="adminDeposit()">Начислить</button>
-    </div>
-    <div class="err" id="depErr"></div>
-    <div id="depRes"></div>
-    <div style="margin-top:16px">
-      <div class="muted small" style="margin-bottom:8px">Пользователи сайта (клик — подставить ID):</div>
-      <div class="row" id="depUsers"><span class="muted small">Загрузка…</span></div>
-    </div>`;
-  db.ref('users').on('value', s=>{
-    if(token!==admToken) return;
-    const box2 = $('depUsers'); if(!box2) return;
-    const arr=[]; if(s && s.forEach) s.forEach(u=>{ const v=u.val()||{}; arr.push({id:Number(v.id||0), name:v.name||'?'}); });
-    arr.sort((a,b)=>a.id-b.id);
-    box2.innerHTML = arr.length
-      ? arr.map(u=>`<span class="id-chip" onclick="pickDepId(${u.id})">ID ${padId(u.id)} · ${esc(u.name)}</span>`).join(' ')
-      : `<span class="muted small">Пользователей пока нет</span>`;
-  });
+function drawAdmOverview(){
+  const grid = $('admStatGrid'); if(!grid) return;
+  const all = window._lots||[];
+  const users = window._users||[];
+  const sold = all.filter(l=>l.status==='sold');
+  const revenue = sold.reduce((s,l)=>s+Number(l.price||0),0);
+  grid.innerHTML = `
+    <div class="stat"><div class="n">${users.length}</div><div class="l">Пользователей</div></div>
+    <div class="stat"><div class="n">${all.length}</div><div class="l">Всего лотов</div></div>
+    <div class="stat"><div class="n">${all.filter(l=>l.status!=='sold').length}</div><div class="l">Активных лотов</div></div>
+    <div class="stat"><div class="n">${sold.length}</div><div class="l">Продано</div></div>
+    <div class="stat"><div class="n">${fmt(revenue)} ₽</div><div class="l">Оборот продаж</div></div>`;
+}
+function drawDepChips(){
+  const box2 = $('depUsers'); if(!box2) return;
+  const users = window._users;
+  if(!users){ box2.innerHTML = `<span class="muted small">Загрузка…</span>`; return; }
+  box2.innerHTML = users.length
+    ? users.map(u=>`<span class="id-chip" onclick="pickDepId(${Number(u.id||0)})">ID ${padId(u.id||0)} · ${esc(u.name||'?')}</span>`).join(' ')
+    : `<span class="muted small">Пользователей пока нет</span>`;
 }
 function pickDepId(n){ const i=$('depId'); if(i) i.value = padId(n); }
 async function adminDeposit(){
@@ -1166,10 +1183,10 @@ async function adminDeposit(){
   res.innerHTML = `<div class="notice">Зачислено ${fmt(amount)} ₽ пользователю <b>${esc(target.name)}</b> (ID ${padId(idNum)}).</div>`;
   $('depAmount').value='';
 }
-function renderAdmLots(box){
+function drawAdmLots(){
+  const box2 = $('admLotsBox'); if(!box2) return;
   const all = window._lots||[];
-  box.innerHTML = `
-    <h3>Все лоты</h3>
+  box2.innerHTML = `
     <div class="table-wrap"><table class="tbl">
       <tr><th>Лот</th><th>Игра</th><th>Цена</th><th>Продавец</th><th>Статус</th><th></th></tr>
       ${all.map(l=>`
@@ -1197,49 +1214,37 @@ async function confirmAdmRemoveLot(id){
   log('Удалён лот (админ)', id);
   toast('Лот удалён');
 }
-/* Пользователи — ЖИВОЙ список: обновляется сам, без перетыкания вкладки */
-function renderAdmUsers(box, token){
-  box.innerHTML = `
-    <h3>Пользователи</h3>
-    <div class="muted small" style="margin-bottom:10px">Если у кого-то из старых аккаунтов ID «0» — пусть он просто зайдёт на сайт и выйдет, ID присвоится автоматически.</div>
-    <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
-  admUsersUnsub = db.ref('users').on('value', s=>{
-    if(token!==admToken) return;
-    const tbl = $('admUsersTbl'); if(!tbl) return;
-    const arr=[]; if(s && s.forEach) s.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
-    arr.sort((a,b)=>(a.id||0)-(b.id||0));
-    tbl.innerHTML = `
-      <table class="tbl">
-        <tr><th>ID</th><th>Никнейм</th><th>Email</th><th>Баланс</th><th>Роль</th><th></th></tr>
-        ${arr.map(u=>`
-          <tr>
-            <td><b>${padId(u.id||0)}</b></td>
-            <td>${esc(u.name||'')}${ownerTag(u.name)}</td>
-            <td class="muted">${esc(u.email||'')}</td>
-            <td>${fmt(u.balance)} ₽</td>
-            <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
-            <td>${u.role==='owner'? '' :
-              u.role==='admin'
-                ? `<button class="btn small ghost" onclick="setRole('${u.uid}','user')">Снять админа</button>`
-                : `<button class="btn small ghost" onclick="setRole('${u.uid}','admin')">Сделать админом</button>`}
-            </td>
-          </tr>`).join('') || '<tr><td colspan="6" class="muted">Пользователей пока нет</td></tr>'}
-      </table>`;
-  });
+function drawAdmUsersTable(){
+  const tbl = $('admUsersTbl'); if(!tbl) return;
+  const users = window._users;
+  if(!users){ tbl.innerHTML = `<span class="muted small">Загрузка…</span>`; return; }
+  tbl.innerHTML = `
+    <table class="tbl">
+      <tr><th>ID</th><th>Никнейм</th><th>Email</th><th>Баланс</th><th>Роль</th><th></th></tr>
+      ${users.map(u=>`
+        <tr>
+          <td><b>${padId(u.id||0)}</b></td>
+          <td>${esc(u.name||'')}${ownerTag(u.name)}</td>
+          <td class="muted">${esc(u.email||'')}</td>
+          <td>${fmt(u.balance)} ₽</td>
+          <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
+          <td>${u.role==='owner'? '' :
+            u.role==='admin'
+              ? `<button class="btn small ghost" onclick="setRole('${u.uid}','user')">Снять админа</button>`
+              : `<button class="btn small ghost" onclick="setRole('${u.uid}','admin')">Сделать админом</button>`}
+          </td>
+        </tr>`).join('') || '<tr><td colspan="6" class="muted">Пользователей пока нет</td></tr>'}
+    </table>`;
 }
 async function setRole(uid, role){
   await db.ref('users/'+uid+'/role').set(role);
   log('Смена роли', `${uid} → ${role}`);
   toast('Роль обновлена');
-  renderAdminData();
 }
-function renderAdmLogs(box, token){
-  box.innerHTML = `
-    <h3>Логи действий</h3>
-    <div id="admLogsBox"><span class="muted small">Загрузка…</span></div>`;
+function renderAdmLogs(){
+  const lb = $('admLogsBox'); if(!lb) return;
   db.ref('logs').limitToLast(80).once('value').then(s=>{
-    if(token!==admToken) return;
-    const lb = $('admLogsBox'); if(!lb) return;
+    if(!$('admLogsBox')) return;
     const arr=[]; if(s && s.forEach) s.forEach(l=>arr.push(l.val()));
     arr.reverse();
     lb.innerHTML = arr.map(r=>`
@@ -1248,7 +1253,7 @@ function renderAdmLogs(box, token){
           <span><b>${esc(r.action)}</b>${r.details? ' — '+esc(r.details):''}</span>
           <span class="muted small" style="margin-left:auto">${timeStr(r.ts)}</span>
         </div>`).join('') || '<div class="locked-box">Логов пока нет</div>';
-  });
+  }).catch(()=>{});
 }
 
 /* Старт */
