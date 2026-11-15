@@ -206,8 +206,12 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v2.2: лоты грузятся одним глобальным слушателем (каталог и «Мои
-   лоты» всегда актуальны), логотип Pay Play, пополнение через ВК по ID.
+   v2.3: исправлены «залипающие» кнопки на странице лота:
+   - слушатели лота и чата отключаются перед навешиванием новых,
+   - устаревшие события игнорируются,
+   - страница перерисовывается только при реальном изменении данных,
+   - модальные окна закрываются при переходе по сайту,
+   - свои лоты в профиле снова кликабельны.
    ===================================================================== */
 
 const FIREBASE_CONFIG = {
@@ -377,8 +381,10 @@ function log(action, details){
 function render(){
   const h = location.hash.slice(1)||'home';
   const [path] = h.split('?');
-  if(path!=='lot' && lotUnsub){ lotUnsub(); lotUnsub=null; }
-  if(path!=='lot' && lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; }
+  // При любом переходе закрываем окна и убираем слушатели лота,
+  // чтобы они не накапливались и не перерисовывали страницу под кликом
+  closeModal();
+  if(path!=='lot') detachLot();
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
   const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin};
@@ -491,14 +497,31 @@ function renderLots(){
 }
 
 /* ===================== ЛОТ ===================== */
-let lotUnsub = null, lotChatUnsub = null;
+let lotUnsub = null, lotChatUnsub = null, curLotId = null, _lotSig = null;
+function detachLot(){
+  if(lotUnsub){ lotUnsub(); lotUnsub=null; }
+  if(lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; }
+  curLotId = null;
+  _lotSig = null;
+}
 function viewLot(){
   const id = new URLSearchParams(location.hash.split('?')[1]||'').get('id');
+  // Сначала отключаем старые слушатели — иначе они копятся и
+  // перерисовывают страницу в момент клика (кнопки «залипают»)
+  detachLot();
+  curLotId = id;
   const app = $('app');
   app.innerHTML = '<div class="locked-box">Загрузка…</div>';
   lotUnsub = db.ref('lots/'+id).on('value', snap=>{
+    // Событие от уже покинутого лота — игнорируем
+    if(curLotId !== id) return;
     const l = snap.val();
     if(!l){ app.innerHTML='<div class="card">Лот не найден или удалён.</div>'; return; }
+    // Перерисовываем только при реальном изменении данных,
+    // чтобы клик не «проваливался» между заменами DOM
+    const sig = JSON.stringify([l, me?me.uid:null, prof?prof.balance:null]);
+    if(sig === _lotSig) return;
+    _lotSig = sig;
     const mine = me && l.ownerUid===me.uid;
     const sold = l.status==='sold';
     const canBuy = me && !mine && !sold && prof && Number(prof.balance||0) >= Number(l.price);
@@ -554,10 +577,13 @@ async function confirmBuy(id){
 
 /* ---------- Чат по лоту ---------- */
 function renderLotChat(lotId, lot){
-  const box = $('lotChat');
   if(lotChatUnsub) lotChatUnsub();
   lotChatUnsub = db.ref('lotChats/'+lotId).on('value', snap=>{
-    if(!$('lotChat')) return;
+    if(curLotId !== lotId) return;
+    const box = $('lotChat'); if(!box) return;
+    // Сохраняем текст, который пользователь печатает прямо сейчас
+    const oldInp = box.querySelector('#lotMsg');
+    const savedText = oldInp ? oldInp.value : '';
     const data = snap.val()||{};
     const parts = data.participants||{};
     const isPart = me && (me.uid===lot.ownerUid || parts[me.uid]);
@@ -579,6 +605,8 @@ function renderLotChat(lotId, lot){
         </div>`
         : `<div class="row" style="margin-top:10px"><button class="btn ghost" onclick="startLotChat('${lotId}')">Написать продавцу</button></div>`)
         : `<div class="locked-box" style="margin-top:10px"><a href="#" onclick="location.hash='profile'">Войдите</a>, чтобы написать продавцу</div>`}`;
+    const ni = box.querySelector('#lotMsg');
+    if(ni && savedText) ni.value = savedText;
     const cw = box.querySelector('.chat-wrap');
     if(cw) cw.scrollTop = cw.scrollHeight;
   });
@@ -705,12 +733,12 @@ function renderMyLots(){
   if(!all){ box.innerHTML = `<div class="locked-box">Загрузка…</div>`; return; }
   const arr = all.filter(l=>l.ownerUid===me.uid);
   box.innerHTML = arr.length ? arr.map(l=>`
-    <div class="lot-card" style="cursor:default">
+    <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
       <div class="lt">${esc(l.title)}</div>
       <div class="lfoot">
         <span class="price">${fmt(l.price)} ₽</span>
-        ${l.status==='sold'?'':`<button class="btn small ghost" onclick="delLot('${l.id}')">Удалить</button>`}
+        ${l.status==='sold'?'':`<button class="btn small ghost" onclick="event.stopPropagation();delLot('${l.id}')">Удалить</button>`}
       </div>
     </div>`).join('')
   : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый лот</a></div>`;
