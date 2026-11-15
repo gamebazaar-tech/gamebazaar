@@ -199,7 +199,10 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
   table.tbl{font-size:13px}
   .profile-head{flex-direction:column;align-items:flex-start}
   main{padding:16px 12px 50px}
-  .dm-wrap{grid-template-columns:1fr}
+  /* На телефоне: чат сверху, список диалогов под ним */
+  .dm-wrap{display:flex;flex-direction:column;gap:12px}
+  .dm-wrap > div:last-child{order:-1}
+  #dmChatBox{min-height:320px}
 }
 @media (max-width:420px){
   .lots-grid{grid-template-columns:1fr}
@@ -246,7 +249,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.9 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.1 Space</div>
   </div>
 </footer>
 
@@ -256,10 +259,8 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.9: чат сообщений теперь читает ВСЕ места базы, куда писали
-   старые версии сайта, и склеивает их в одну ленту — старые
-   сообщения не теряются. Исправлена отписка от слушателей базы
-   (раньше она не работала, плодились дубли). Добавлен favicon.
+   v4.1: мобильная раскладка сообщений — чат сверху, список под ним,
+   авто-подскролл к чату при открытии диалога. Всё из v4.0 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -279,10 +280,11 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.database();
 
-/* Правильная подписка/отписка: возвращает функцию отписки */
 function listen(path, cb){
   const ref = db.ref(path);
-  ref.on('value', cb);
+  ref.on('value', cb, err=>{
+    try{ toast('База: '+path+' — '+(err&&err.code? err.code:'ошибка доступа'), true); }catch(_){}
+  });
   return ()=>{ try{ ref.off('value', cb); }catch(_){} };
 }
 
@@ -309,6 +311,8 @@ const timeStr = ts => new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'
 const padId = n => String(Number(n||0));
 const isOwnerNick = name => (name||'')===OWNER_NICK;
 const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>' : '';
+
+function isMobile(){ return window.innerWidth <= 820; }
 
 function toast(text, isErr){
   const t = document.createElement('div');
@@ -408,6 +412,8 @@ auth.onAuthStateChanged(user=>{
           .then(()=>{ profIdAssigning=false; });
       }
       updateHeader(); render();
+    }, err=>{
+      try{ toast('Профиль: '+(err&&err.code? err.code:'ошибка доступа'), true); }catch(_){}
     });
     watchBell(); watchDm();
   } else {
@@ -434,6 +440,8 @@ function updateHeader(){
     $('navAdmin').style.display = adm?'':'none';
     $('navAdminM').style.display = adm?'':'none';
   } else {
+    $('balanceVal').textContent = '—';
+    $('avatarBtn').innerHTML = 'S';
     $('navAdmin').style.display='none'; $('navAdminM').style.display='none';
   }
 }
@@ -732,9 +740,7 @@ async function sendChatMsg(lotId){
   });
 }
 
-/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ =====================
-   v3.9: лента чата собирается из нескольких мест базы
-   (нового и всех старых), дубли склеиваются — ничего не теряется. */
+/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ ===================== */
 let dmChatsCache = null;
 let dmOpenChatId = null;
 let dmMsgs = [];
@@ -774,6 +780,11 @@ function openDmChat(key){
   dmOpenChatId = key;
   dmCloseChatListener();
   drawDmChat();
+  /* на телефоне подскролливаем к чату — он сверху колонки */
+  if(isMobile()) setTimeout(()=>{
+    const b = $('dmChatBox');
+    if(b) b.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 120);
   dmMsgPaths(key).forEach(p=>{
     const un = listen(p, snap=>{
       if(dmOpenChatId!==key) return;
@@ -869,7 +880,7 @@ function renderDmList(){
 }
 function drawDmChatPlaceholder(){
   const box = $('dmChatBox'); if(!box) return;
-  box.innerHTML = '<div class="locked-box" style="margin:70px 10px">Выберите диалог слева или начните новый по ID.</div>';
+  box.innerHTML = '<div class="locked-box" style="margin:70px 10px">Выберите диалог'+(isMobile()?' ниже':' слева')+' или начните новый по ID.</div>';
 }
 function drawDmChat(){
   const box = $('dmChatBox'); if(!box) return;
@@ -1052,7 +1063,7 @@ async function confirmRemoveLot(id){
 }
 function viewProfile(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
-  if(!prof){ $('app').innerHTML = '<div class="locked-box">Загрузка профиля…</div>'; return; }
+  if(!prof){ $('app').innerHTML = '<div class="locked-box">Загрузка профиля… Если висит долго — смотри уведомления справа внизу.</div>'; return; }
   $('app').innerHTML = `
     <div class="card">
       <div class="profile-head">
@@ -1159,7 +1170,7 @@ function renderAdminData(){
   } else if(admTab==='users'){
     box.innerHTML = `
       <h3>Пользователи</h3>
-      <div class="muted small" style="margin-bottom:10px">Здесь те, кто хотя бы раз зашёл на сайт после последнего обновления. Остальные появятся после первого входа. Полный список зарегистрированных — в консоли Firebase, раздел «Аутентификация».</div>
+      <div class="muted small" style="margin-bottom:10px">Здесь те, кто хотя бы раз зашёл на сайт. ID «0» у свежезашедших — присвоится через пару секунд, обнови страницу.</div>
       <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
     drawAdmUsersTable();
   } else {
