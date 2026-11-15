@@ -85,10 +85,6 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .btn.small{padding:7px 14px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
 .btn.danger{background:linear-gradient(135deg,#ef4444,#991b1b);box-shadow:0 0 18px rgba(239,68,68,.35)}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}
-.tab{padding:10px 22px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:14px;transition:all .2s}
-.tab:hover{color:var(--text);border-color:var(--accent);box-shadow:var(--glow)}
-.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;border-color:transparent;box-shadow:var(--glow)}
 .banner{background:radial-gradient(120% 150% at 25% 0%, rgba(109,63,214,.4) 0%, rgba(45,30,90,.55) 40%, rgba(20,14,40,.85) 100%);border:1px solid var(--accent-dark);border-radius:18px;padding:52px 24px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow),var(--glow)}
 .banner::before{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(217,70,239,.35),transparent 70%);pointer-events:none}
 .banner::after{content:'';position:absolute;bottom:-90px;left:-50px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.3),transparent 70%);pointer-events:none}
@@ -158,17 +154,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:14px}
 table.tbl th{color:var(--muted);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--border)}
 table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
 .table-wrap{overflow-x:auto}
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.stat{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border-color .2s,box-shadow .2s}
-.stat:hover{border-color:var(--accent);box-shadow:var(--glow)}
-.stat .n{font-size:24px;font-weight:800;color:var(--accent2);text-shadow:0 0 18px rgba(167,139,250,.45)}
-.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
 .log-row{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .log-row .who{font-weight:700;color:var(--accent2)}
 .notif-row{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
 .notif-row.unread{background:rgba(76,48,145,.3);border-left:3px solid var(--accent);border-radius:6px}
 .notif-row .t{color:var(--muted);font-size:11px;margin-top:3px}
 .dm-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+#dmChatBox{min-height:360px}
 .dm-item{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s}
 .dm-item:hover{background:var(--card2)}
 .dm-item.sel{background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(109,63,214,.12));border-left:3px solid var(--accent)}
@@ -180,6 +172,8 @@ table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:m
 .dm-right{text-align:right;flex-shrink:0}
 .dm-time{color:var(--muted);font-size:11px}
 .dm-badge{display:inline-flex;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-top:4px}
+.user-link{color:var(--accent2);font-weight:700;text-decoration:none;border-bottom:1px dotted var(--accent-dark)}
+.user-link:hover{color:#fff;text-decoration:none;border-bottom-color:var(--accent)}
 #toasts{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(340px,90vw)}
 .toast{background:var(--card2);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;font-size:14px;box-shadow:var(--shadow),var(--glow);animation:tin .3s}
 .toast.err{border-color:var(--red);box-shadow:0 0 18px rgba(255,23,68,.35)}
@@ -249,7 +243,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.1 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.4 Space</div>
   </div>
 </footer>
 
@@ -259,8 +253,9 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v4.1: мобильная раскладка сообщений — чат сверху, список под ним,
-   авто-подскролл к чату при открытии диалога. Всё из v4.0 сохранено.
+   v4.4: клик по имени пользователя внутри кликабельных карточек
+   (лоты, диалоги) больше не перебивается кликом карточки —
+   ссылка на профиль работает отовсюду. Всё из v4.3 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -311,9 +306,25 @@ const timeStr = ts => new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'
 const padId = n => String(Number(n||0));
 const isOwnerNick = name => (name||'')===OWNER_NICK;
 const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>' : '';
-
 function isMobile(){ return window.innerWidth <= 820; }
 
+/* Кликабельное имя пользователя.
+   event.stopPropagation() — чтобы клик по имени не срабатывал
+   как клик по родительской карточке (лота или диалога). */
+function userLink(uid, name){
+  if(!uid) return esc(name||'?');
+  return '<a class="user-link" href="#user?id='+uid+'" onclick="event.stopPropagation()">'+esc(name||'Пользователь')+'</a>';
+}
+function preserveInput(id){
+  const el = document.getElementById(id);
+  return { val: el? el.value:'', focus: document.activeElement===el };
+}
+function restoreInput(id, st){
+  const el = document.getElementById(id);
+  if(!el || !st) return;
+  el.value = st.val;
+  if(st.focus) el.focus();
+}
 function toast(text, isErr){
   const t = document.createElement('div');
   t.className = 'toast'+(isErr?' err':'');
@@ -441,7 +452,7 @@ function updateHeader(){
     $('navAdminM').style.display = adm?'':'none';
   } else {
     $('balanceVal').textContent = '—';
-    $('avatarBtn').innerHTML = 'S';
+    $('avatarBtn').innerHTML = 'P';
     $('navAdmin').style.display='none'; $('navAdminM').style.display='none';
   }
 }
@@ -492,7 +503,7 @@ function render(){
   if(path!=='inbox') dmCloseChatListener();
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
-  const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin, inbox:viewInbox};
+  const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin, inbox:viewInbox, user:viewUserPage};
   (views[path]||viewHome)();
   window.scrollTo(0,0);
 }
@@ -520,6 +531,9 @@ listen('users', snap=>{
     arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
     window._users = arr;
     refreshAdminLive();
+    /* если открыт чей-то профиль — обновить его живьём */
+    const path=(location.hash.slice(1)||'home').split('?')[0];
+    if(path==='user') renderUserPage();
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
 });
 
@@ -600,19 +614,21 @@ function renderLots(){
       <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
       <div class="lt">${esc(l.title)}</div>
       <div class="ld">${esc(l.desc)}</div>
-      <div class="lfoot"><span class="price">${fmt(l.price)} ₽</span><span class="muted small">${esc(l.ownerName||'')}</span></div>
+      <div class="lfoot"><span class="price">${fmt(l.price)} ₽</span><span class="muted small">${userLink(l.ownerUid, l.ownerName)}</span></div>
     </div>`).join('')
   : '<div class="locked-box" style="grid-column:1/-1">Лотов пока нет'+(me?' — станьте первым продавцом: <a href="#sell">выставить лот</a>':'')+'</div>';
 }
 
 /* ===================== ЛОТ ===================== */
-let curLotId = null, lotChatUnsub = null, curChatLotId = null, curLotObj = null;
+let curLotId = null, lotChatUnsub = null, curChatLotId = null, curLotObj = null, curLotPageId = null, curLotRenderedStatus = null;
 const chatCache = {};
 function detachLotChat(){
   if(lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; }
   curChatLotId = null;
   curLotId = null;
   curLotObj = null;
+  curLotPageId = null;
+  curLotRenderedStatus = null;
 }
 function viewLot(){
   const id = new URLSearchParams(location.hash.split('?')[1]||'').get('id');
@@ -620,9 +636,10 @@ function viewLot(){
   if(curChatLotId && curChatLotId!==id && lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; curChatLotId=null; }
   curLotId = id;
   curLotObj = null;
-  renderLotPage();
+  curLotPageId = null;
+  renderLotPage(true);
 }
-function renderLotPage(){
+function renderLotPage(force){
   const id = curLotId; if(!id) return;
   const app = $('app'); if(!app) return;
   const all = window._lots;
@@ -630,6 +647,12 @@ function renderLotPage(){
   const l = all.find(x=>x.id===id);
   if(!l){ app.innerHTML='<div class="card">Лот не найден или удалён.</div>'; return; }
   curLotObj = l;
+  if(!force && curLotPageId===id && curLotRenderedStatus===l.status && $('lotChat')){
+    drawChat(id, l);
+    return;
+  }
+  curLotPageId = id;
+  curLotRenderedStatus = l.status;
   const mine = me && l.ownerUid===me.uid;
   const sold = l.status==='sold';
   const canBuy = me && !mine && !sold && prof && Number(prof.balance||0) >= Number(l.price);
@@ -643,7 +666,7 @@ function renderLotPage(){
       <p class="muted" style="margin:10px 0 4px;white-space:pre-wrap">${esc(l.desc)}</p>
       <div class="row" style="margin:16px 0;justify-content:space-between">
         <span class="price" style="font-size:24px">${fmt(l.price)} ₽</span>
-        <span class="muted small">Продавец: <b style="color:var(--text)">${esc(l.ownerName)}</b>${ownerTag(l.ownerName)}</span>
+        <span class="muted small">Продавец: <b>${userLink(l.ownerUid, l.ownerName)}</b>${ownerTag(l.ownerName)}</span>
       </div>
       ${mine? '<div class="notice">Это ваш лот. Управлять им можно в профиле.</div>' : `
         <div class="row">
@@ -703,6 +726,7 @@ function attachLotChat(lotId, lot){
 }
 function drawChat(lotId, lot){
   const box = $('lotChat'); if(!box || curChatLotId!==lotId) return;
+  const inpSt = preserveInput('chatInput');
   const msgs = chatCache[lotId]||{};
   const list = Object.keys(msgs).map(k=>({key:k, ...msgs[k]})).filter(m=>m.text).sort((a,b)=>(a.ts||0)-(b.ts||0));
   const canWrite = me && lot && !['sold'].includes(lot.status);
@@ -714,7 +738,7 @@ function drawChat(lotId, lot){
       <div class="ava">${ava}</div>
       <div>
         <div class="bubble">${esc(m.text)}</div>
-        <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+        <div class="meta">${userLink(m.fromUid, m.fromName)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
   }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым'+(lot?(' про «'+esc(lot.title)+'»'):'')+'.</div>';
@@ -726,6 +750,7 @@ function drawChat(lotId, lot){
         <button class="btn" onclick="sendChatMsg('${lotId}')">Отправить</button>
       </div>`
     : '<div class="locked-box" style="margin-top:12px">'+(me? 'Чат закрыт — лот продан.' : 'Войдите, чтобы писать в чат.')+'</div>');
+  restoreInput('chatInput', inpSt);
   const w = $('chatList'); if(w) w.scrollTop = w.scrollHeight;
 }
 async function sendChatMsg(lotId){
@@ -780,7 +805,6 @@ function openDmChat(key){
   dmOpenChatId = key;
   dmCloseChatListener();
   drawDmChat();
-  /* на телефоне подскролливаем к чату — он сверху колонки */
   if(isMobile()) setTimeout(()=>{
     const b = $('dmChatBox');
     if(b) b.scrollIntoView({behavior:'smooth', block:'start'});
@@ -841,11 +865,11 @@ function viewInbox(){
             <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric">
             <button class="btn small" onclick="dmStartById()">Открыть</button>
           </div>
-          <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… ${isOwnerAdmin()?'Вы админ: можете написать любому пользователю (все ID — в админ-панели, вкладка «Пользователи»).':'ID пользователя смотрите в его профиле или спросите у него.'}</div>
+          <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… Узнать ID пользователя можно на его профиле: нажми на имя в чате или у лота.</div>
         </div>
         <div class="card" style="padding:0;margin-top:12px;overflow:hidden" id="dmList"></div>
       </div>
-      <div class="card" id="dmChatBox" style="min-height:360px"></div>
+      <div class="card" id="dmChatBox"></div>
     </div>`;
   renderDmList();
   if(dmOpenChatId) openDmChat(dmOpenChatId); else drawDmChatPlaceholder();
@@ -868,7 +892,7 @@ function renderDmList(){
     <div class="dm-item${sel}" onclick="openDmChat('${c.key}')">
       <div class="dm-ava">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
       <div class="dm-info">
-        <div class="dm-name">${esc(u.name||'Пользователь')}${ownerTag(u.name)}</div>
+        <div class="dm-name">${userLink(otherUid, u.name)}${ownerTag(u.name)}</div>
         <div class="dm-preview">${esc(c.lastText||'Нет сообщений')}</div>
       </div>
       <div class="dm-right">
@@ -886,6 +910,7 @@ function drawDmChat(){
   const box = $('dmChatBox'); if(!box) return;
   const key = dmOpenChatId;
   if(!key) return drawDmChatPlaceholder();
+  const inpSt = preserveInput('dmInput');
   const meta = (dmChatsCache||{})[key]||{};
   const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid) || '?';
   const u = (meta.users||{})[otherUid]||{};
@@ -897,7 +922,7 @@ function drawDmChat(){
       <div class="ava">${ava}</div>
       <div>
         <div class="bubble">${esc(m.text)}</div>
-        <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+        <div class="meta">${userLink(m.fromUid, m.fromName)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
   }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым.</div>';
@@ -905,7 +930,7 @@ function drawDmChat(){
     <div class="row" style="justify-content:space-between;margin-bottom:8px">
       <div class="row" style="gap:10px">
         <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
-        <b>${esc(u.name||'Пользователь')}${ownerTag(u.name)}</b>
+        <b>${userLink(otherUid, u.name)}${ownerTag(u.name)}</b>
         <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
       </div>
     </div>
@@ -914,6 +939,7 @@ function drawDmChat(){
       <input id="dmInput" placeholder="Сообщение…" maxlength="1000" onkeydown="if(event.key==='Enter')sendDmMsg()">
       <button class="btn" onclick="sendDmMsg()">Отправить</button>
     </div>`;
+  restoreInput('dmInput', inpSt);
   const w = $('dmMsgList'); if(w) w.scrollTop = w.scrollHeight;
 }
 async function sendDmMsg(){
@@ -980,6 +1006,78 @@ function dmWriteSellerByLot(lotId){
   startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0).then(()=>{ location.hash='inbox'; });
 }
 
+/* ===================== ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
+   Страница #user?id=... Видна всем. Баланс и пополнение —
+   только администрации. */
+let curUserUid = null;
+function viewUserPage(){
+  curUserUid = new URLSearchParams(location.hash.split('?')[1]||'').get('id')||null;
+  renderUserPage();
+}
+function renderUserPage(){
+  const app = $('app'); if(!app) return;
+  if(!me){ app.innerHTML = viewAuth(); return; }
+  if(!curUserUid){ app.innerHTML = '<div class="card">Профиль не указан.</div>'; return; }
+  if(!window._users){ app.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
+  const u = window._users.find(x=>x.uid===curUserUid);
+  if(!u){ app.innerHTML = '<div class="card">Профиль не найден или пользователь ещё не заходил на сайт.</div>'; return; }
+  const adm = isOwnerAdmin();
+  const mine = curUserUid===me.uid;
+  app.innerHTML = `
+    <div class="row small" style="margin-bottom:10px"><a href="javascript:history.back()">← Назад</a></div>
+    <div class="card">
+      <div class="profile-head">
+        <div class="avatar">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
+        <div>
+          <h2>${esc(u.name||'Пользователь')}${ownerTag(u.name)}</h2>
+          <div class="muted small">ID на сайте: <b style="color:var(--text)">${padId(u.id||0)}</b>${adm&&u.email? ' · Email: '+esc(u.email):''}</div>
+          <div class="muted small">На сайте с: ${u.createdAt? timeStr(u.createdAt):'—'}</div>
+        </div>
+        <div class="row" style="margin-left:auto">
+          ${mine? '<button class="btn ghost small" onclick="location.hash=\'profile\'">Это вы — ваш профиль</button>'
+                : '<button class="btn small" onclick="dmWriteByUid(\''+curUserUid+'\')">✉️ Написать</button>'}
+        </div>
+      </div>
+      ${adm? `
+        <div class="balance-big">
+          <div>
+            <div class="muted small">Баланс пользователя</div>
+            <div class="sum">${fmt(u.balance)} ₽</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px;background:transparent;border:1px dashed var(--border)">
+          <b>Пополнить баланс пользователю</b>
+          <p class="muted small">Сумма зачисления. Пользователь получит уведомление.</p>
+          <div class="row" style="margin-top:10px">
+            <input id="userTopAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
+            <button class="btn" onclick="userTopUp('${curUserUid}')">Начислить</button>
+          </div>
+          <div class="err" id="userTopErr"></div>
+        </div>`
+      : (mine? '' : '<div class="notice" style="margin-top:14px">Информация профиля. Написать пользователю можно кнопкой «Написать».</div>')}
+    </div>`;
+}
+async function userTopUp(uid){
+  const amount = Number($('userTopAmount').value);
+  const err = $('userTopErr'); if(err) err.textContent='';
+  if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
+  const s = await db.ref('users/'+uid).get();
+  const u = s && s.val ? s.val() : null;
+  if(!u) return err.textContent='Пользователь не найден';
+  await db.ref('users/'+uid+'/balance').transaction(b=>(b||0)+amount);
+  await pushNotif(uid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
+  log('Начисление', fmt(amount)+' ₽ пользователю '+u.name+' (ID '+padId(u.id||0)+')');
+  toast('Зачислено '+fmt(amount)+' ₽ пользователю '+u.name);
+  $('userTopAmount').value='';
+  renderUserPage();
+}
+function dmWriteByUid(uid){
+  if(!me) return toast('Войдите, чтобы писать', true);
+  if(uid===me.uid) return toast('Это ваш собственный профиль 🙂', true);
+  const u = (window._users||[]).find(x=>x.uid===uid);
+  startDmChat(uid, u? u.name:'Пользователь', u? (u.photo||null):null, u? (u.id||0):0).then(()=>{ location.hash='inbox'; });
+}
+
 /* ===================== ПРОДАТЬ ===================== */
 function viewSell(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
@@ -1035,8 +1133,8 @@ async function submitLot(){
 function renderMyLots(){
   const box = $('myLots'); if(!box) return;
   if(!me){ box.innerHTML = '<div class="locked-box">Войдите, чтобы видеть свои лоты</div>'; return; }
-  const all = window._lots||[];
-  const mine = all.filter(l=>l.ownerUid===me.uid);
+  if(!window._lots){ box.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
+  const mine = window._lots.filter(l=>l.ownerUid===me.uid);
   box.innerHTML = mine.length ? mine.map(l=>`
     <div class="log-row">
       <span class="tag game">${esc(l.game)}</span>
@@ -1116,172 +1214,23 @@ async function saveProfile(){
   }catch(e){ $('edErr').textContent = e.message; }
 }
 
-/* ===================== АДМИН-ПАНЕЛЬ ===================== */
-let admTab = 'overview';
-
-function switchAdmTab(t){
-  admTab = t;
-  const wrap = $('admTabs');
-  if(wrap) wrap.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===t));
-  renderAdminData();
-}
+/* ===================== АДМИН-ПАНЕЛЬ (только логи) ===================== */
 function viewAdmin(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
   if(!isOwnerAdmin()){ $('app').innerHTML = '<div class="card">Доступ только для администрации.</div>'; return; }
   $('app').innerHTML = `
     <h2>Админ-панель</h2>
-    <div class="tabs" id="admTabs" style="margin-top:14px">
-      <button class="tab ${admTab==='overview'?'active':''}" data-tab="overview" onclick="switchAdmTab('overview')">Обзор</button>
-      <button class="tab ${admTab==='deposits'?'active':''}" data-tab="deposits" onclick="switchAdmTab('deposits')">Начисление</button>
-      <button class="tab ${admTab==='lots'?'active':''}" data-tab="lots" onclick="switchAdmTab('lots')">Лоты</button>
-      <button class="tab ${admTab==='users'?'active':''}" data-tab="users" onclick="switchAdmTab('users')">Пользователи</button>
-      <button class="tab ${admTab==='logs'?'active':''}" data-tab="logs" onclick="switchAdmTab('logs')">Логи</button>
-    </div>
-    <div class="card" style="margin-top:16px" id="admBox">Загрузка…</div>`;
-  renderAdminData();
-}
-function renderAdminData(){
-  const box = $('admBox'); if(!box || !isOwnerAdmin()) return;
-  if(admTab==='overview'){
-    box.innerHTML = `
-      <h3 style="margin-bottom:14px">Обзор</h3>
-      <div class="stat-grid" id="admStatGrid"><span class="muted small">Считаем…</span></div>
-      <div class="notice" style="margin-top:16px">Начисления балансу — на вкладке «Начисление» по ID пользователя. Минимум пополнения на сайте: ${MIN_DEPOSIT} ₽.</div>`;
-    drawAdmOverview();
-  } else if(admTab==='deposits'){
-    box.innerHTML = `
-      <h3>Начисление баланса по ID</h3>
-      <p class="muted small">Введите ID пользователя и сумму зачисления. Можно кликнуть по пользователю ниже — ID подставится сам.</p>
-      <div class="row" style="margin-top:10px">
-        <input id="depId" placeholder="Например: 2" style="max-width:220px" inputmode="numeric">
-        <input id="depAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
-        <button class="btn" onclick="adminDeposit()">Начислить</button>
-      </div>
-      <div class="err" id="depErr"></div>
-      <div id="depRes"></div>
-      <div style="margin-top:16px">
-        <div class="muted small" style="margin-bottom:8px">Пользователи сайта (клик — подставить ID):</div>
-        <div class="row" id="depUsers"><span class="muted small">Загрузка…</span></div>
-      </div>`;
-    drawDepChips();
-  } else if(admTab==='lots'){
-    box.innerHTML = '<h3>Все лоты</h3><div id="admLotsBox"><span class="muted small">Загрузка…</span></div>';
-    drawAdmLots();
-  } else if(admTab==='users'){
-    box.innerHTML = `
-      <h3>Пользователи</h3>
-      <div class="muted small" style="margin-bottom:10px">Здесь те, кто хотя бы раз зашёл на сайт. ID «0» у свежезашедших — присвоится через пару секунд, обнови страницу.</div>
-      <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
-    drawAdmUsersTable();
-  } else {
-    box.innerHTML = '<h3>Логи действий</h3><div id="admLogsBox"><span class="muted small">Загрузка…</span></div>';
-    renderAdmLogs();
-  }
+    <p class="muted small" style="margin-top:6px">Здесь только журнал действий. Чтобы пополнить баланс пользователю — откройте его профиль: имена кликабельны в чатах, лотах и в этих логах.</p>
+    <div class="card" style="margin-top:14px">
+      <h3>Логи действий</h3>
+      <div id="admLogsBox" style="margin-top:10px"><span class="muted small">Загрузка…</span></div>
+    </div>`;
+  renderAdmLogs();
 }
 function refreshAdminLive(){
   const path=(location.hash.slice(1)||'home').split('?')[0];
-  if(path!=='admin' || !isOwnerAdmin() || !$('admBox')) return;
-  if(admTab==='overview') drawAdmOverview();
-  else if(admTab==='deposits') drawDepChips();
-  else if(admTab==='lots') drawAdmLots();
-  else if(admTab==='users') drawAdmUsersTable();
-}
-function drawAdmOverview(){
-  const grid = $('admStatGrid'); if(!grid) return;
-  const all = window._lots||[];
-  const users = window._users||[];
-  const sold = all.filter(l=>l.status==='sold');
-  const revenue = sold.reduce((s,l)=>s+Number(l.price||0),0);
-  grid.innerHTML = `
-    <div class="stat"><div class="n">${users.length}</div><div class="l">Пользователей</div></div>
-    <div class="stat"><div class="n">${all.length}</div><div class="l">Всего лотов</div></div>
-    <div class="stat"><div class="n">${all.filter(l=>l.status!=='sold').length}</div><div class="l">Активных лотов</div></div>
-    <div class="stat"><div class="n">${sold.length}</div><div class="l">Продано</div></div>
-    <div class="stat"><div class="n">${fmt(revenue)} ₽</div><div class="l">Оборот продаж</div></div>`;
-}
-function drawDepChips(){
-  const box2 = $('depUsers'); if(!box2) return;
-  const users = window._users;
-  if(!users){ box2.innerHTML = '<span class="muted small">Загрузка…</span>'; return; }
-  box2.innerHTML = users.length
-    ? users.map(u=>`<span class="id-chip" onclick="pickDepId(${Number(u.id||0)})">ID ${padId(u.id||0)} · ${esc(u.name||'?')}</span>`).join(' ')
-    : '<span class="muted small">Пользователей пока нет</span>';
-}
-function pickDepId(n){ const i=$('depId'); if(i) i.value = padId(n); }
-async function adminDeposit(){
-  const raw = $('depId').value.trim();
-  const idNum = parseInt(raw,10);
-  const amount = Number($('depAmount').value);
-  const err = $('depErr'); const res = $('depRes');
-  err.textContent=''; res.innerHTML='';
-  if(!raw || !Number.isInteger(idNum) || idNum<=0) return err.textContent='ID — число, например 2';
-  if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
-  const s = await db.ref('users').get();
-  let target=null, targetUid=null;
-  if(s && s.forEach) s.forEach(u=>{ if(Number((u.val()||{}).id)===idNum){ target=u.val(); targetUid=u.key; } });
-  if(!target) return err.textContent='Пользователь с таким ID не найден — проверьте список ниже';
-  await db.ref('users/'+targetUid+'/balance').transaction(b=>(b||0)+amount);
-  await pushNotif(targetUid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
-  log('Начисление', fmt(amount)+' ₽ пользователю '+target.name+' (ID '+padId(idNum)+')');
-  res.innerHTML = '<div class="notice">Зачислено '+fmt(amount)+' ₽ пользователю <b>'+esc(target.name)+'</b> (ID '+padId(idNum)+').</div>';
-  $('depAmount').value='';
-}
-function drawAdmLots(){
-  const box2 = $('admLotsBox'); if(!box2) return;
-  const all = window._lots||[];
-  box2.innerHTML = `
-    <div class="table-wrap"><table class="tbl">
-      <tr><th>Лот</th><th>Игра</th><th>Цена</th><th>Продавец</th><th>Статус</th><th></th></tr>
-      ${all.map(l=>`
-        <tr>
-          <td><a href="#lot?id=${l.id}">${esc(l.title)}</a></td>
-          <td>${esc(l.game)}</td>
-          <td>${fmt(l.price)} ₽</td>
-          <td>${esc(l.ownerName||'')}</td>
-          <td>${l.status==='sold'?'<span class="tag sold">Продан</span>':'<span class="tag">Активен</span>'}</td>
-          <td><button class="btn small danger" onclick="admRemoveLot('${l.id}')">Удалить</button></td>
-        </tr>`).join('') || '<tr><td colspan="6" class="muted">Лотов нет</td></tr>'}
-    </table></div>`;
-}
-async function admRemoveLot(id){
-  modal('<h3>Удалить лот?</h3>'+
-    '<div class="row" style="justify-content:flex-end;margin-top:14px">'+
-    '<button class="btn ghost" onclick="closeModal()">Отмена</button>'+
-    '<button class="btn danger" onclick="confirmAdmRemoveLot(\''+id+'\')">Удалить</button></div>');
-}
-async function confirmAdmRemoveLot(id){
-  closeModal();
-  await db.ref('lots/'+id).remove();
-  await db.ref('lotChats/'+id).remove();
-  log('Удалён лот (админ)', id);
-  toast('Лот удалён');
-}
-function drawAdmUsersTable(){
-  const tbl = $('admUsersTbl'); if(!tbl) return;
-  const users = window._users;
-  if(!users){ tbl.innerHTML = '<span class="muted small">Загрузка…</span>'; return; }
-  tbl.innerHTML = `
-    <table class="tbl">
-      <tr><th>ID</th><th>Никнейм</th><th>Email</th><th>Баланс</th><th>Роль</th><th></th></tr>
-      ${users.map(u=>`
-        <tr>
-          <td><b>${padId(u.id||0)}</b></td>
-          <td>${esc(u.name||'')}${ownerTag(u.name)}</td>
-          <td class="muted">${esc(u.email||'')}</td>
-          <td>${fmt(u.balance)} ₽</td>
-          <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
-          <td>${u.role==='owner'? '' :
-            u.role==='admin'
-              ? '<button class="btn small ghost" onclick="setRole(\''+u.uid+'\',\'user\')">Снять админа</button>'
-              : '<button class="btn small ghost" onclick="setRole(\''+u.uid+'\',\'admin\')">Сделать админом</button>'}
-          </td>
-        </tr>`).join('') || '<tr><td colspan="6" class="muted">Пользователей пока нет</td></tr>'}
-    </table>`;
-}
-async function setRole(uid, role){
-  await db.ref('users/'+uid+'/role').set(role);
-  log('Смена роли', uid+' → '+role);
-  toast('Роль обновлена');
+  if(path!=='admin' || !isOwnerAdmin() || !$('admLogsBox')) return;
+  renderAdmLogs();
 }
 function renderAdmLogs(){
   const lb = $('admLogsBox'); if(!lb) return;
@@ -1291,7 +1240,7 @@ function renderAdmLogs(){
     arr.reverse();
     lb.innerHTML = arr.map(r=>`
         <div class="log-row">
-          <span class="who">${esc(r.actorName||'?')}</span>
+          <span class="who">${userLink(r.actorUid, r.actorName)}</span>
           <span><b>${esc(r.action)}</b>${r.details? ' — '+esc(r.details):''}</span>
           <span class="muted small" style="margin-left:auto">${timeStr(r.ts)}</span>
         </div>`).join('') || '<div class="locked-box">Логов пока нет</div>';
