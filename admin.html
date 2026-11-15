@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админ-панель — GameBazaar</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<header class="topbar">
+  <a class="logo" href="index.html">GameBazaar</a>
+  <nav id="topnav" class="nav"></nav>
+</header>
+<div class="admin-wrap">
+  <h2 class="admin-title">🛠️ Админ-панель</h2>
+  <div class="admin-tabs" id="admin-tabs"></div>
+  <div id="admin-content"></div>
+</div>
+<script src="auth.js"></script>
+<script>
+var me=currentUser();
+if(!me){ location.href='login.html'; }
+var drafts={};
+var paused=false;
+var activeTab='tickets';
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function badge(st){
+  var cls = st==='Одобрено' ? 'st-ok' : (st==='Отмена' ? 'st-no' : 'st-review');
+  return '<span class="status '+cls+'">'+esc(st)+'</span>';
+}
+
+function renderTabs(){
+  var u=me;
+  var tabs=[['tickets','Обращения']];
+  if(u.role==='owner'){ tabs.push(['tx','Транзакции']); tabs.push(['users','Пользователи']); }
+  document.getElementById('admin-tabs').innerHTML = tabs.map(function(t){
+    return '<div class="atab'+(activeTab===t[0]?' active':'')+'" onclick="switchTab(\''+t[0]+'\')">'+t[1]+'</div>';
+  }).join('');
+}
+function switchTab(t){ activeTab=t; renderAdmin(true); }
+
+function renderAdmin(force){
+  if(!me) return;
+  if(me.role==='user'){ document.getElementById('admin-content').innerHTML='<div class="ban-note">Доступ только для владельца и помощников.</div>'; return; }
+  renderTabs();
+  if(paused && !force) return;
+  var d=loadDB();
+  var c=document.getElementById('admin-content');
+
+  if(activeTab==='tickets'){
+    c.innerHTML = d.tickets.length ? d.tickets.slice().reverse().map(function(t){
+      var conv=t.messages.map(function(m){
+        var cls=m.from==='user'?'user':'support';
+        var who=m.from==='user'?esc(t.username):'Поддержка ✓';
+        return '<div class="msg '+cls+'"><span class="who">'+who+' · '+fmtTime(m.time)+(m.auto?' · автоответ':'')+'</span>'+esc(m.text)+'</div>';
+      }).join('');
+      var draft=drafts[t.id]||'';
+      return '<div class="card ticket-card">'+
+        '<div class="tk-head"><span class="tk-user">'+esc(t.username)+'</span>'+badge(t.status)+'</div>'+
+        '<div class="conv">'+conv+'</div>'+
+        '<div class="reply-box"><div class="reply-label">Ответ уйдёт пользователю от лица «Поддержка GameBazaar ✓»</div>'+
+        '<textarea id="re-'+t.id+'" placeholder="Текст ответа...">'+esc(draft)+'</textarea>'+
+        '<div class="status-btns">'+
+        '<button class="btn btn-primary btn-sm" onclick="reply(\''+t.id+'\')">Ответить</button>'+
+        '<button class="btn btn-warn btn-sm" onclick="tstatus(\''+t.id+'\',\'На рассмотрении\')">На рассмотрение</button>'+
+        '<button class="btn btn-ok btn-sm" onclick="tstatus(\''+t.id+'\',\'Одобрено\')">Одобрено</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="tstatus(\''+t.id+'\',\'Отмена\')">Отмена</button>'+
+        '</div></div></div>';
+    }).join('') : '<div class="card">Обращений пока нет.</div>';
+    // восстановить фокус после перерисовки
+    if(paused){
+      var ae=document.activeElement;
+      if(ae&&ae.id&&ae.id.indexOf('re-')===0){
+        var el=document.getElementById(ae.id);
+        if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+      }
+    }
+  }
+
+  if(activeTab==='tx' && me.role==='owner'){
+    c.innerHTML='<div class="card"><table class="tx"><tr><th>№</th><th>Пользователь</th><th>Товар</th><th>Сумма</th><th>Статус</th><th>Действия</th></tr>'+
+      d.transactions.map(function(t){
+        return '<tr><td>'+esc(t.id)+'</td><td>'+esc(t.user)+'</td><td>'+esc(t.item)+'</td><td>'+esc(t.amount)+'</td><td>'+badge(t.status)+'</td>'+
+        '<td><div class="status-btns">'+
+        '<button class="btn btn-warn btn-sm" onclick="xstatus(\''+t.id+'\',\'На рассмотрении\')">На рассмотрение</button>'+
+        '<button class="btn btn-ok btn-sm" onclick="xstatus(\''+t.id+'\',\'Одобрено\')">Одобрено</button>'+
+        '<button class="btn btn-danger btn-sm" onclick="xstatus(\''+t.id+'\',\'Отмена\')">Отмена</button>'+
+        '</div></td></tr>';
+      }).join('')+'</table><div class="note">Транзакции пока тестовые — настоящие появятся после подключения сервера.</div></div>';
+  }
+
+  if(activeTab==='users' && me.role==='owner'){
+    c.innerHTML = d.users.map(function(u){
+      var rb = u.role==='owner'?'rb-owner':(u.role==='helper'?'rb-helper':'rb-user');
+      var rn = u.role==='owner'?'👑 владелец':(u.role==='helper'?'🎧 помощник':'пользователь');
+      var act='';
+      if(u.role==='helper') act+='<button class="btn btn-outline btn-sm" onclick="toggleHelper(\''+esc(u.username)+'\',false)">Снять помощника</button>';
+      else if(u.role==='user') act+='<button class="btn btn-primary btn-sm" onclick="toggleHelper(\''+esc(u.username)+'\',true)">Назначить помощником</button>';
+      if(u.role==='user') act+= u.banned
+        ? '<button class="btn btn-ok btn-sm" onclick="toggleBan(\''+esc(u.username)+'\',false)">Разбанить</button>'
+        : '<button class="btn btn-danger btn-sm" onclick="toggleBan(\''+esc(u.username)+'\',true)">Забанить</button>';
+      return '<div class="card ticket-card"><div class="tk-head"><span class="tk-user">'+esc(u.username)+(u.banned?' 🚫':'')+'</span><span class="role-badge '+rb+'">'+rn+'</span></div><div class="status-btns">'+act+'</div></div>';
+    }).join('');
+  }
+}
+
+function reply(id){
+  var el=document.getElementById('re-'+id);
+  var text=el.value.trim(); if(!text) return;
+  supportReply(id,text);
+  drafts[id]='';
+  renderAdmin(true);
+}
+function tstatus(id,st){ setTicketStatus(id,st); renderAdmin(true); }
+function xstatus(id,st){ setTransactionStatus(id,st); renderAdmin(true); }
+function toggleHelper(name,on){
+  var d=loadDB();
+  var u=d.users.find(function(x){return x.username===name;});
+  if(u){ u.role=on?'helper':'user'; saveDB(d); renderAdmin(true); }
+}
+function toggleBan(name,on){
+  var d=loadDB();
+  var u=d.users.find(function(x){return x.username===name;});
+  if(u){ u.banned=on; saveDB(d); if(on) setSession(null); renderAdmin(true); }
+}
+
+document.addEventListener('focusin', function(e){ if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') paused=true; });
+document.addEventListener('focusout', function(e){ if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') paused=false; });
+document.addEventListener('input', function(e){
+  if(e.target.id&&e.target.id.indexOf('re-')===0) drafts[e.target.id.slice(3)]=e.target.value;
+});
+
+renderAdmin(true);
+setInterval(renderAdmin, 3000);
+</script>
+</body>
+</html>

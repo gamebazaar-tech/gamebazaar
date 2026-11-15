@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameBazaar — маркетплейс игровых ценностей</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<header class="topbar">
+  <a class="logo" href="index.html">GameBazaar</a>
+  <nav id="topnav" class="nav"></nav>
+</header>
+<main class="container">
+  <section class="hero">
+    <h1>Маркетплейс игровых ценностей</h1>
+    <p>Покупай и продавай аккаунты, валюту, буст и ключи безопасно — сделки проходят через гаранта.</p>
+    <div class="search-row">
+      <input id="search" placeholder="Найти аккаунт, ключ, валюту...">
+      <button class="btn btn-primary" onclick="alert('Каталог скоро появится — серверная часть в разработке')">Найти</button>
+    </div>
+    <div class="chips">
+      <button class="chip active">Все</button>
+      <button class="chip">Аккаунты</button>
+      <button class="chip">Валюта</button>
+      <button class="chip">Буст</button>
+      <button class="chip">Ключи</button>
+      <button class="chip">Предметы</button>
+    </div>
+  </section>
+  <section class="catalog-empty card">
+    <div class="sat">🛰️</div>
+    <h2>Каталог скоро появится</h2>
+    <p>Здесь будут лоты продавцов. Серверная часть в разработке.</p>
+  </section>
+  <section class="steps">
+    <div class="step card"><div class="num">1</div><h3>Выбери лот</h3><p>Найди нужный аккаунт, ключ или валюту среди предложений продавцов.</p></div>
+    <div class="step card"><div class="num">2</div><h3>Оплати через гаранта</h3><p>Деньги замораживаются на площадке до подтверждения получения товара.</p></div>
+    <div class="step card"><div class="num">3</div><h3>Получи товар</h3><p>После подтверждения сделки продавец получает оплату, вы — товар.</p></div>
+  </section>
+</main>
+<footer class="footer">
+  <p>© 2026 GameBazaar · <a href="https://vk.com/" target="_blank" rel="noopener">Мы ВКонтакте</a></p>
+</footer>
+<script src="auth.js"></script>
+</body>
+</html>

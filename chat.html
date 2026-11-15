@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сообщения — GameBazaar</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="nebula nebula-1"></div>
+<div class="nebula nebula-2"></div>
+<header class="topbar">
+  <a class="logo" href="index.html">GameBazaar</a>
+  <nav id="topnav" class="nav"></nav>
+</header>
+<div class="chat-layout">
+  <aside class="chat-side card">
+    <div class="side-title">Чаты</div>
+    <div class="chat-item" id="item-support" onclick="openSupport()">
+      <div class="avatar check">✓</div>
+      <div>
+        <div class="ci-name">Поддержка GameBazaar <span class="badge-check" title="Проверенная учётная запись">✓</span></div>
+        <div class="ci-sub">Официальная поддержка</div>
+      </div>
+    </div>
+    <div class="side-sub">Ваши сделки</div>
+    <div class="chat-item muted">Здесь появятся диалоги по сделкам</div>
+    <div id="admin-block" style="display:none">
+      <div class="side-sub">Обращения пользователей</div>
+      <div id="ticket-list"></div>
+    </div>
+  </aside>
+  <section class="chat-main card">
+    <div id="chat-head" class="chat-head"></div>
+    <div id="chat-msgs" class="chat-msgs"></div>
+    <div id="composer" class="composer"></div>
+  </section>
+</div>
+<script src="auth.js"></script>
+<script>
+var me=currentUser();
+var selectedTicket=null;
+
+function esc(s){ var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function myTicket(){
+  var d=loadDB();
+  return d.tickets.filter(function(t){return t.username===me.username;}).pop();
+}
+
+function openSupport(){ selectedTicket=null; render(); }
+
+function msgHTML(m){
+  var who = m.from==='user' ? esc(m.fromName||me.username) : 'Поддержка GameBazaar ✓';
+  var cls = m.from==='user' ? 'user' : 'support';
+  return '<div class="msg '+cls+'"><span class="who">'+who+' · '+fmtTime(m.time)+'</span>'+esc(m.text)+'</div>';
+}
+
+function render(){
+  if(!me){ location.href='login.html'; return; }
+  var d=loadDB();
+  var head=document.getElementById('chat-head');
+  var box=document.getElementById('chat-msgs');
+  var comp=document.getElementById('composer');
+  var adminBlock=document.getElementById('admin-block');
+
+  if(isAdminUser()){
+    adminBlock.style.display='block';
+    var list=document.getElementById('ticket-list');
+    list.innerHTML = d.tickets.length
+      ? d.tickets.slice().reverse().map(function(t){
+          var sel = selectedTicket===t.id ? ' sel' : '';
+          return '<div class="ticket-item'+sel+'" onclick="openTicket(\''+t.id+'\')">'+esc(t.username)+' · '+esc(t.status)+'</div>';
+        }).join('')
+      : '<div class="chat-item muted">Обращений пока нет</div>';
+  } else { adminBlock.style.display='none'; }
+
+  var viewingTicket=null;
+  if(isAdminUser() && selectedTicket) viewingTicket=d.tickets.find(function(t){return t.id===selectedTicket;});
+
+  if(viewingTicket){
+    document.getElementById('item-support').classList.remove('active');
+    head.innerHTML='<div class="avatar check">✓</div><div><div class="ci-name">Диалог с '+esc(viewingTicket.username)+' <span class="badge-check" title="Проверенная учётная запись">✓</span></div><div class="ci-sub">Ответ уходит от лица «Поддержка GameBazaar ✓» · статус: '+esc(viewingTicket.status)+'</div></div>';
+    box.innerHTML=viewingTicket.messages.map(msgHTML).join('') || '<div class="chat-item muted">Сообщений нет</div>';
+    comp.innerHTML='<textarea id="msg-input" placeholder="Ответить как Поддержка ✓..."></textarea><div class="status-btns"><button class="btn btn-primary" onclick="sendSupport(\''+viewingTicket.id+'\')">Ответить</button></div>';
+    var inp=document.getElementById('msg-input');
+    inp.value=drafts['chat-'+viewingTicket.id]||'';
+    inp.addEventListener('input', function(){ drafts['chat-'+viewingTicket.id]=inp.value; });
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendSupport(viewingTicket.id); } });
+  } else {
+    document.getElementById('item-support').classList.add('active');
+    head.innerHTML='<div class="avatar check">✓</div><div><div class="ci-name">Поддержка GameBazaar <span class="badge-check" title="Проверенная учётная запись">✓</span></div><div class="ci-sub">Отвечает живой помощник</div></div>';
+    var t=myTicket();
+    box.innerHTML=(t? t.messages.map(msgHTML).join('') : '') || '<div class="chat-item muted">Напишите ваше обращение — поддержка ответит здесь</div>';
+    comp.innerHTML=
+      '<div class="tpl-row">'+
+      '<button class="tpl" onclick="useTpl(\'Хочу вернуть средства за обман\')">Вернуть средства за обман</button>'+
+      '<button class="tpl" onclick="useTpl(\'Продавец не передал товар\')">Продавец не передал товар</button>'+
+      '<button class="tpl" onclick="useTpl(\'Проблема с входом в аккаунт\')">Проблема с входом</button>'+
+      '<button class="tpl" onclick="useTpl(\'Жалоба на пользователя\')">Жалоба на пользователя</button>'+
+      '</div>'+
+      '<div class="comp-row"><input id="msg-input" placeholder="Напишите обращение..."><button class="btn btn-primary" onclick="sendUser()">Отправить</button></div>';
+    var inp2=document.getElementById('msg-input');
+    inp2.value=drafts['own']||'';
+    inp2.addEventListener('input', function(){ drafts['own']=inp2.value; });
+    inp2.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); sendUser(); } });
+  }
+  box.scrollTop=box.scrollHeight;
+}
+
+function useTpl(text){ var inp=document.getElementById('msg-input'); inp.value=text; drafts['own']=text; inp.focus(); }
+function sendUser(){
+  var inp=document.getElementById('msg-input');
+  var text=inp.value.trim(); if(!text) return;
+  inp.value=''; drafts['own']='';
+  addTicketMessage(me.username,'user',text);
+  autoReply(me.username);
+  render();
+}
+function sendSupport(id){
+  var inp=document.getElementById('msg-input');
+  var text=inp.value.trim(); if(!text) return;
+  inp.value=''; drafts['chat-'+id]='';
+  supportReply(id,text);
+  render();
+}
+function openTicket(id){ selectedTicket=id; render(); }
+
+var drafts={};
+render();
+setInterval(render, 3000);
+</script>
+</body>
+</html>
