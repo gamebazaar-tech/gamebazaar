@@ -243,7 +243,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.4 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.5 Space</div>
   </div>
 </footer>
 
@@ -253,9 +253,11 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v4.4: клик по имени пользователя внутри кликабельных карточек
-   (лоты, диалоги) больше не перебивается кликом карточки —
-   ссылка на профиль работает отовсюду. Всё из v4.3 сохранено.
+   v4.5: СAMОВОССТАНОВЛЕНИЕ ПРОФИЛЕЙ. Если при клике на имя
+   профиля нет в базе (её потери больше не страшны), сайт создаёт
+   его заново — имя и аватар берутся из ссылки, ID присваивается
+   автоматически. После восстановления профиль виден всем,
+   пополнение и логи работают как обычно. Всё из v4.4 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -309,11 +311,16 @@ const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">�
 function isMobile(){ return window.innerWidth <= 820; }
 
 /* Кликабельное имя пользователя.
+   Имя и аватар передаются в ссылке — по ним профиль
+   восстанавливается, если в базе его нет.
    event.stopPropagation() — чтобы клик по имени не срабатывал
-   как клик по родительской карточке (лота или диалога). */
-function userLink(uid, name){
+   как клик по родительской карточке. */
+function userLink(uid, name, photo){
   if(!uid) return esc(name||'?');
-  return '<a class="user-link" href="#user?id='+uid+'" onclick="event.stopPropagation()">'+esc(name||'Пользователь')+'</a>';
+  let href = '#user?id='+uid;
+  if(name) href += '&n='+encodeURIComponent(name);
+  if(photo) href += '&p='+encodeURIComponent(photo);
+  return '<a class="user-link" href="'+href+'" onclick="event.stopPropagation()">'+esc(name||'Пользователь')+'</a>';
 }
 function preserveInput(id){
   const el = document.getElementById(id);
@@ -531,7 +538,6 @@ listen('users', snap=>{
     arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
     window._users = arr;
     refreshAdminLive();
-    /* если открыт чей-то профиль — обновить его живьём */
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='user') renderUserPage();
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
@@ -738,7 +744,7 @@ function drawChat(lotId, lot){
       <div class="ava">${ava}</div>
       <div>
         <div class="bubble">${esc(m.text)}</div>
-        <div class="meta">${userLink(m.fromUid, m.fromName)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+        <div class="meta">${userLink(m.fromUid, m.fromName, m.fromPhoto)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
   }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым'+(lot?(' про «'+esc(lot.title)+'»'):'')+'.</div>';
@@ -892,7 +898,7 @@ function renderDmList(){
     <div class="dm-item${sel}" onclick="openDmChat('${c.key}')">
       <div class="dm-ava">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
       <div class="dm-info">
-        <div class="dm-name">${userLink(otherUid, u.name)}${ownerTag(u.name)}</div>
+        <div class="dm-name">${userLink(otherUid, u.name, u.photo)}${ownerTag(u.name)}</div>
         <div class="dm-preview">${esc(c.lastText||'Нет сообщений')}</div>
       </div>
       <div class="dm-right">
@@ -922,7 +928,7 @@ function drawDmChat(){
       <div class="ava">${ava}</div>
       <div>
         <div class="bubble">${esc(m.text)}</div>
-        <div class="meta">${userLink(m.fromUid, m.fromName)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+        <div class="meta">${userLink(m.fromUid, m.fromName, m.fromPhoto)}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
   }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым.</div>';
@@ -930,7 +936,7 @@ function drawDmChat(){
     <div class="row" style="justify-content:space-between;margin-bottom:8px">
       <div class="row" style="gap:10px">
         <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
-        <b>${userLink(otherUid, u.name)}${ownerTag(u.name)}</b>
+        <b>${userLink(otherUid, u.name, u.photo)}${ownerTag(u.name)}</b>
         <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
       </div>
     </div>
@@ -1007,11 +1013,14 @@ function dmWriteSellerByLot(lotId){
 }
 
 /* ===================== ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
-   Страница #user?id=... Видна всем. Баланс и пополнение —
-   только администрации. */
+   Страница #user?id=... Если профиля нет в базе — сайт сам
+   восстанавливает его по имени и аватару из ссылки. Баланс и
+   пополнение — только администрации. */
 let curUserUid = null;
+const recoveringUids = new Set();
 function viewUserPage(){
-  curUserUid = new URLSearchParams(location.hash.split('?')[1]||'').get('id')||null;
+  const qs = new URLSearchParams(location.hash.split('?')[1]||'');
+  curUserUid = qs.get('id')||null;
   renderUserPage();
 }
 function renderUserPage(){
@@ -1020,7 +1029,36 @@ function renderUserPage(){
   if(!curUserUid){ app.innerHTML = '<div class="card">Профиль не указан.</div>'; return; }
   if(!window._users){ app.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
   const u = window._users.find(x=>x.uid===curUserUid);
-  if(!u){ app.innerHTML = '<div class="card">Профиль не найден или пользователь ещё не заходил на сайт.</div>'; return; }
+  if(!u){
+    /* Профиль потерян — восстанавливаем по данным из ссылки */
+    const qs = new URLSearchParams(location.hash.split('?')[1]||'');
+    const nParam = qs.get('n')||'';
+    const pParam = qs.get('p')||'';
+    if(nParam && !recoveringUids.has(curUserUid)){
+      recoveringUids.add(curUserUid);
+      db.ref('users/'+curUserUid).get().then(s=>{
+        if(s.exists()) return renderUserPage();
+        const isOwner = isOwnerNick(nParam);
+        return db.ref('users/'+curUserUid).set({
+          name:nParam, email:'', role: isOwner?'owner':'user', verified: isOwner,
+          id:null, balance:0, photo: pParam||null, createdAt:Date.now()
+        }).then(async ()=>{
+          const id = await assignUserId(nParam);
+          await db.ref('users/'+curUserUid+'/id').set(id);
+          log('Восстановлен профиль', nParam+' (ID '+padId(id)+')');
+        });
+      }).then(()=>{ recoveringUids.delete(curUserUid); })
+        .catch(e=>{
+          recoveringUids.delete(curUserUid);
+          try{ toast('Не удалось восстановить профиль: '+e.message, true); }catch(_){}
+          renderUserPage();
+        });
+      app.innerHTML = '<div class="locked-box">Профиль не найден в базе — восстанавливаем его автоматически… Подожди пару секунд, страница обновится сама.</div>';
+      return;
+    }
+    app.innerHTML = '<div class="card">Профиль не найден'+(recoveringUids.has(curUserUid)?' — восстанавливаем…':' или пользователь ещё не заходил на сайт.')+'</div>';
+    return;
+  }
   const adm = isOwnerAdmin();
   const mine = curUserUid===me.uid;
   app.innerHTML = `
