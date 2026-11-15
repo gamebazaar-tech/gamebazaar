@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#07060f">
+<link rel="icon" href="data:,">
 <title>Pay Play — маркетплейс игровых ценностей</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -245,7 +246,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.8 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.9 Space</div>
   </div>
 </footer>
 
@@ -255,9 +256,10 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.8: починены ссылки «Войти» / «Войдите, чтобы пополнить» /
-   «Войдите, чтобы купить» — теперь честный #profile без двойного
-   прыжка (на телефоне форма входа больше не мигает и не исчезает).
+   v3.9: чат сообщений теперь читает ВСЕ места базы, куда писали
+   старые версии сайта, и склеивает их в одну ленту — старые
+   сообщения не теряются. Исправлена отписка от слушателей базы
+   (раньше она не работала, плодились дубли). Добавлен favicon.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -276,6 +278,13 @@ const FIREBASE_CONFIG = {
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db = firebase.database();
+
+/* Правильная подписка/отписка: возвращает функцию отписки */
+function listen(path, cb){
+  const ref = db.ref(path);
+  ref.on('value', cb);
+  return ()=>{ try{ ref.off('value', cb); }catch(_){} };
+}
 
 const GAMES = ['Black Russia','PUBG','Standoff 2'];
 const CATEGORIES = ['Игровая валюта','Аккаунт','Скины','Другое'];
@@ -434,7 +443,7 @@ function watchBell(){
   if(bellUnsub){ bellUnsub(); bellUnsub=null; }
   notifs = [];
   if(!me){ const d=$('bellDot'); if(d) d.style.display='none'; return; }
-  bellUnsub = db.ref('notifications/'+me.uid).limitToLast(50).on('value', snap=>{
+  bellUnsub = listen('notifications/'+me.uid, snap=>{
     notifs = []; let n=0;
     if(snap && snap.forEach) snap.forEach(c=>{ const v=c.val()||{}; notifs.push({key:c.key,...v}); if(!v.read) n++; });
     const d=$('bellDot'); if(!d) return;
@@ -483,7 +492,7 @@ window.addEventListener('hashchange', render);
 
 /* ===================== ЖИВЫЕ КЭШИ ===================== */
 let catGame='', catCat='';
-db.ref('lots').on('value', snap=>{
+listen('lots', snap=>{
   try{
     const arr=[]; if(snap && snap.forEach) snap.forEach(l=>arr.push({id:l.key, ...(l.val()||{})}));
     arr.sort((a,b)=>b.createdAt-a.createdAt);
@@ -496,7 +505,7 @@ db.ref('lots').on('value', snap=>{
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
 });
 window._users = null;
-db.ref('users').on('value', snap=>{
+listen('users', snap=>{
   try{
     const arr=[];
     if(snap && snap.forEach) snap.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
@@ -671,7 +680,7 @@ function attachLotChat(lotId, lot){
     if(lotChatUnsub) lotChatUnsub();
     curChatLotId = lotId;
     curLotObj = lot;
-    lotChatUnsub = db.ref('lotChats/'+lotId).on('value', snap=>{
+    lotChatUnsub = listen('lotChats/'+lotId, snap=>{
       if(curChatLotId !== lotId) return;
       try{
         if(!snap || typeof snap.val !== 'function') return;
@@ -687,7 +696,7 @@ function attachLotChat(lotId, lot){
 function drawChat(lotId, lot){
   const box = $('lotChat'); if(!box || curChatLotId!==lotId) return;
   const msgs = chatCache[lotId]||{};
-  const list = Object.keys(msgs).map(k=>({key:k, ...msgs[k]})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const list = Object.keys(msgs).map(k=>({key:k, ...msgs[k]})).filter(m=>m.text).sort((a,b)=>(a.ts||0)-(b.ts||0));
   const canWrite = me && lot && !['sold'].includes(lot.status);
   const html = list.map(m=>{
     const mineMsg = me && m.fromUid===me.uid;
@@ -723,22 +732,68 @@ async function sendChatMsg(lotId){
   });
 }
 
-/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ ===================== */
+/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ =====================
+   v3.9: лента чата собирается из нескольких мест базы
+   (нового и всех старых), дубли склеиваются — ничего не теряется. */
 let dmChatsCache = null;
 let dmOpenChatId = null;
-let dmChatUnsub = null;
 let dmMsgs = [];
 let dmWatchUnsub = null;
+let dmListeners = [];
+let dmSources = {};
 
 const dmKeyFor = (a,b) => [String(a),String(b)].sort().join('__');
 
+function dmMsgPaths(key){
+  return ['dmMsgs/'+key, 'dmChats/'+key+'/msgs', 'dmChats/'+key+'/messages', 'dialogs/'+key];
+}
 function dmCloseChatListener(){
-  if(dmChatUnsub){ dmChatUnsub(); dmChatUnsub=null; }
+  dmListeners.forEach(un=>{ try{un();}catch(_){} });
+  dmListeners = [];
+  dmSources = {};
+  dmMsgs = [];
+}
+function dmRebuildMessages(key){
+  if(dmOpenChatId!==key) return;
+  const seen = new Set(); const merged = [];
+  Object.values(dmSources).forEach(arr=>{
+    arr.forEach(m=>{
+      const sig = (m.ts||0)+'|'+(m.fromUid||'')+'|'+(m.text||'');
+      if(seen.has(sig)) return;
+      seen.add(sig);
+      merged.push(m);
+    });
+  });
+  merged.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  dmMsgs = merged;
+  drawDmChat();
+  db.ref('dmChats/'+key+'/meta/unread/'+me.uid).set(0);
+}
+function openDmChat(key){
+  if(!me || !key) return;
+  dmOpenChatId = key;
+  dmCloseChatListener();
+  drawDmChat();
+  dmMsgPaths(key).forEach(p=>{
+    const un = listen(p, snap=>{
+      if(dmOpenChatId!==key) return;
+      try{
+        const arr=[];
+        if(snap && snap.forEach) snap.forEach(m=>{
+          const v = m.val();
+          if(v && v.text) arr.push({key:m.key, ...v});
+        });
+        dmSources[p] = arr;
+        dmRebuildMessages(key);
+      }catch(e){ toast('Ошибка чата: '+e.message, true); }
+    });
+    dmListeners.push(un);
+  });
 }
 function watchDm(){
   if(dmWatchUnsub){ dmWatchUnsub(); dmWatchUnsub=null; }
   if(!me){ dmChatsCache=null; updateDmDot(); return; }
-  dmWatchUnsub = db.ref('dmChats').on('value', snap=>{
+  dmWatchUnsub = listen('dmChats', snap=>{
     try{
       const out={};
       if(snap && snap.forEach){
@@ -812,24 +867,6 @@ function renderDmList(){
     </div>`;
   }).join('');
 }
-function openDmChat(key){
-  if(!me || !key) return;
-  dmOpenChatId = key;
-  dmCloseChatListener();
-  dmMsgs = [];
-  drawDmChat();
-  dmChatUnsub = db.ref('dmMsgs/'+key).on('value', snap=>{
-    if(dmOpenChatId!==key) return;
-    try{
-      const arr=[];
-      if(snap && snap.forEach) snap.forEach(m=>arr.push({key:m.key, ...(m.val()||{})}));
-      arr.sort((a,b)=>(a.ts||0)-(b.ts||0));
-      dmMsgs = arr;
-      drawDmChat();
-      db.ref('dmChats/'+key+'/meta/unread/'+me.uid).set(0);
-    }catch(e){ toast('Ошибка чата: '+e.message, true); }
-  });
-}
 function drawDmChatPlaceholder(){
   const box = $('dmChatBox'); if(!box) return;
   box.innerHTML = '<div class="locked-box" style="margin:70px 10px">Выберите диалог слева или начните новый по ID.</div>';
@@ -875,11 +912,12 @@ async function sendDmMsg(){
   if(!text) return;
   inp.value='';
   try{
-    await db.ref('dmMsgs/'+key).push({
+    const msg = {
       fromUid:me.uid, fromName:prof? prof.name:'?',
       fromPhoto: prof? (prof.photo||null):null,
       text, ts:Date.now()
-    });
+    };
+    await db.ref('dmMsgs/'+key).push(msg);
     const meta = (dmChatsCache||{})[key]||{};
     const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid);
     const updates = {
@@ -1121,7 +1159,7 @@ function renderAdminData(){
   } else if(admTab==='users'){
     box.innerHTML = `
       <h3>Пользователи</h3>
-      <div class="muted small" style="margin-bottom:10px">Если у кого-то из старых аккаунтов ID «0» — пусть он просто зайдёт на сайт, ID присвоится автоматически.</div>
+      <div class="muted small" style="margin-bottom:10px">Здесь те, кто хотя бы раз зашёл на сайт после последнего обновления. Остальные появятся после первого входа. Полный список зарегистрированных — в консоли Firebase, раздел «Аутентификация».</div>
       <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
     drawAdmUsersTable();
   } else {
