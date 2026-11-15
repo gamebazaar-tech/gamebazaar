@@ -2,89 +2,67 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Вход / Регистрация — GameBazaar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход и регистрация — GameBazaar</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-<div class="nebula nebula-1"></div>
-<div class="nebula nebula-2"></div>
-<header class="topbar">
-  <a class="logo" href="index.html">GameBazaar</a>
-  <nav id="topnav" class="nav"></nav>
-</header>
-<div class="auth-wrap">
-  <div class="auth-card">
-    <div class="tabs">
-      <div class="tab" id="tab-login" onclick="showTab('login')">Вход</div>
-      <div class="tab" id="tab-register" onclick="showTab('register')">Регистрация</div>
+<div id="site-header"></div>
+<div class="container">
+  <div class="panel form-panel">
+    <h1 id="form-title">Вход</h1>
+    <p class="sub">Рады видеть тебя снова</p>
+
+    <div id="reg-fields">
+      <label>Ник</label>
+      <input id="nick" maxlength="24" placeholder="Придумай ник">
     </div>
-    <div id="form-login">
-      <label for="l-user">Ник</label>
-      <input id="l-user" autocomplete="username">
-      <label for="l-pass">Пароль</label>
-      <input id="l-pass" type="password" autocomplete="current-password">
-      <button class="btn btn-primary btn-wide" onclick="doLogin()">Войти</button>
-      <div class="err" id="err-login"></div>
-    </div>
-    <div id="form-register" style="display:none">
-      <label for="r-user">Ник (латиница, 3–20 символов)</label>
-      <input id="r-user" autocomplete="username">
-      <label for="r-email">Email</label>
-      <input id="r-email" type="email" autocomplete="email">
-      <label for="r-pass">Пароль (от 6 символов)</label>
-      <input id="r-pass" type="password" autocomplete="new-password">
-      <label for="r-pass2">Повтор пароля</label>
-      <input id="r-pass2" type="password" autocomplete="new-password">
-      <button class="btn btn-primary btn-wide" onclick="doRegister()">Зарегистрироваться</button>
-      <div class="err" id="err-register"></div>
-      <div class="info-box">👑 Владелец сайта — аккаунт <b>Sergey_Sergeev</b>. Только он получает доступ к админ-панели. Остальные аккаунты регистрируются как обычные пользователи.</div>
-    </div>
+    <label id="pass-label">Пароль</label>
+    <input id="pass" type="password" maxlength="64" placeholder="Пароль">
+
+    <div class="alert-err" id="err"></div>
+    <button class="btn-primary" id="btn-go" onclick="go()">Войти</button>
+    <p class="form-note" id="switch-note">Нет аккаунта? <a href="#" onclick="switchMode(true); return false;">Зарегистрироваться</a></p>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+
+<script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <script>
-function showTab(name){
-  document.getElementById('tab-login').classList.toggle('active', name==='login');
-  document.getElementById('tab-register').classList.toggle('active', name==='register');
-  document.getElementById('form-login').style.display = name==='login' ? 'block' : 'none';
-  document.getElementById('form-register').style.display = name==='register' ? 'block' : 'none';
+let regMode = false;
+if (window.location.hash === "#register") switchMode(true);
+
+function switchMode(toRegister) {
+  regMode = toRegister;
+  document.getElementById("form-title").textContent = toRegister ? "Регистрация" : "Вход";
+  document.getElementById("btn-go").textContent = toRegister ? "Создать аккаунт" : "Войти";
+  document.getElementById("switch-note").innerHTML = toRegister
+    ? 'Уже есть аккаунт? <a href="#" onclick="switchMode(false); return false;">Войти</a>'
+    : 'Нет аккаунта? <a href="#" onclick="switchMode(true); return false;">Зарегистрироваться</a>';
 }
-function toast(msg){
-  var t=document.getElementById('toast');
-  t.textContent=msg; t.style.display='block';
-  setTimeout(function(){ t.style.display='none'; }, 2500);
+
+function showErr(msg) {
+  const e = document.getElementById("err");
+  e.textContent = msg; e.style.display = "block";
 }
-function doRegister(){
-  document.getElementById('err-register').textContent='';
-  try{
-    var res=registerUser(
-      document.getElementById('r-user').value,
-      document.getElementById('r-email').value,
-      document.getElementById('r-pass').value,
-      document.getElementById('r-pass2').value
-    );
-    if(!res.ok){ document.getElementById('err-register').textContent='Ошибка: '+res.error; return; }
-    toast('Регистрация успешна!');
-    setTimeout(function(){ location.href='index.html'; }, 900);
-  }catch(e){ document.getElementById('err-register').textContent='Ошибка: '+e.message; }
+
+function go() {
+  const nick = document.getElementById("nick").value;
+  const pass = document.getElementById("pass").value;
+  const cb = function(err) {
+    if (err) return showErr(err);
+    window.location.href = "index.html";
+  };
+  if (regMode) gbRegister(nick, pass, cb); else gbLogin(nick, pass, cb);
 }
-function doLogin(){
-  document.getElementById('err-login').textContent='';
-  try{
-    var res=loginUser(document.getElementById('l-user').value, document.getElementById('l-pass').value);
-    if(!res.ok){ document.getElementById('err-login').textContent='Ошибка: '+res.error; return; }
-    toast('Вход выполнен!');
-    setTimeout(function(){ location.href='index.html'; }, 900);
-  }catch(e){ document.getElementById('err-login').textContent='Ошибка: '+e.message; }
-}
-document.getElementById('l-pass').addEventListener('keydown', function(e){ if(e.key==='Enter') doLogin(); });
-document.getElementById('r-pass2').addEventListener('keydown', function(e){ if(e.key==='Enter') doRegister(); });
-(function(){
-  var params=new URLSearchParams(location.search);
-  showTab(params.get('tab')==='register' ? 'register' : 'login');
-})();
+
+document.getElementById("pass").addEventListener("keydown", function(e) { if (e.key === "Enter") go(); });
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("site-header").outerHTML = gbHeaderHTML().replace('<header', '<header id="site-header"');
+});
 </script>
 </body>
 </html>

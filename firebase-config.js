@@ -1,6 +1,4 @@
-// Firebase configuration for GameBaazar
-// Вставлено автоматически по конфигу из консоли Firebase
-
+// Конфигурация Firebase для GameBazaar
 const firebaseConfig = {
   apiKey: "AIzaSyCB74VZbRIccb-1GsJFPpOvImtEggFlhOU",
   authDomain: "gamebazaar-4e055.firebaseapp.com",
@@ -10,8 +8,5 @@ const firebaseConfig = {
   messagingSenderId: "208852148103",
   appId: "1:208852148103:web:084f1c812d8dcda389fd22"
 };
-
-// Экспорт для использования на страницах сайта
-if (typeof window !== "undefined") {
-  window.firebaseConfig = firebaseConfig;
-}
+firebase.initializeApp(firebaseConfig);
+const gbDB = firebase.database();

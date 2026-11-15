@@ -2,48 +2,74 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>GameBazaar — маркетплейс игровых ценностей</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GameBazaar — маркетплейс игровых товаров</title>
 <link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
-<div class="nebula nebula-1"></div>
-<div class="nebula nebula-2"></div>
-<header class="topbar">
-  <a class="logo" href="index.html">GameBazaar</a>
-  <nav id="topnav" class="nav"></nav>
-</header>
-<main class="container">
-  <section class="hero">
-    <h1>Маркетплейс игровых ценностей</h1>
-    <p>Покупай и продавай аккаунты, валюту, буст и ключи безопасно — сделки проходят через гаранта.</p>
-    <div class="search-row">
-      <input id="search" placeholder="Найти аккаунт, ключ, валюту...">
-      <button class="btn btn-primary" onclick="alert('Каталог скоро появится — серверная часть в разработке')">Найти</button>
-    </div>
-    <div class="chips">
-      <button class="chip active">Все</button>
-      <button class="chip">Аккаунты</button>
-      <button class="chip">Валюта</button>
-      <button class="chip">Буст</button>
-      <button class="chip">Ключи</button>
-      <button class="chip">Предметы</button>
-    </div>
-  </section>
-  <section class="catalog-empty card">
-    <div class="sat">🛰️</div>
-    <h2>Каталог скоро появится</h2>
-    <p>Здесь будут лоты продавцов. Серверная часть в разработке.</p>
-  </section>
-  <section class="steps">
-    <div class="step card"><div class="num">1</div><h3>Выбери лот</h3><p>Найди нужный аккаунт, ключ или валюту среди предложений продавцов.</p></div>
-    <div class="step card"><div class="num">2</div><h3>Оплати через гаранта</h3><p>Деньги замораживаются на площадке до подтверждения получения товара.</p></div>
-    <div class="step card"><div class="num">3</div><h3>Получи товар</h3><p>После подтверждения сделки продавец получает оплату, вы — товар.</p></div>
-  </section>
-</main>
-<footer class="footer">
-  <p>© 2026 GameBazaar · <a href="https://vk.com/" target="_blank" rel="noopener">Мы ВКонтакте</a></p>
-</footer>
+<div id="site-header"></div>
+<div class="container">
+  <div class="notice">&#128640; Демо-витрина. Кнопка «Купить» отправляет заявку в поддержку — админ подтвердит её в админ-панели.</div>
+  <h1>Маркетплейс</h1>
+  <p class="sub">Игровые товары от проверенных продавцов</p>
+  <div class="search-row">
+    <input id="search" placeholder="Поиск: скины, аккаунты, валюта..." oninput="renderLots()">
+  </div>
+  <div class="grid" id="lots"></div>
+</div>
+
+<script src="firebase-config.js"></script>
 <script src="auth.js"></script>
+<script>
+const LOTS = [
+  { emoji: "\u{1F3AE}", name: "Скин «Драконий закат»", desc: "Редкий скин, Standoff 2. Без привязки.", price: 1490, seller: "SkinMaster" },
+  { emoji: "\u2694\uFE0F", name: "Аккаунт Standoff 2", desc: "12 легендарных скинов, рейтинг Легенда.", price: 3900, seller: "ProSeller" },
+  { emoji: "\u{1F48E}", name: "1000 кристаллов", desc: "Пополнение Brawl Stars, безопасно.", price: 690, seller: "TopUpPro" },
+  { emoji: "\u{1F9F8}", name: "Набор «Космос»", desc: "Бандл наклеек CS2 из 25 предметов.", price: 1250, seller: "CaseKing" },
+  { emoji: "\u{1F0CF}", name: "Аккаунт Brawl Stars", desc: "40 000 кубков, все бравлеры открыты.", price: 5200, seller: "ProSeller" },
+  { emoji: "\u{1F3B5}", name: "Гифт Spotify Premium", desc: "Подписка на 3 месяца, активация сразу.", price: 890, seller: "GiftMaster" },
+  { emoji: "\u{1F52E}", name: "Скины Roblox", desc: "Набор из 5 ограниченных предметов.", price: 2100, seller: "RobloxPro" },
+  { emoji: "\u{1F3AF}", name: "Буст Duo LoL", desc: "Подниму рейтинг до Золота за неделю.", price: 1500, seller: "BoostMan" }
+];
+
+function renderLots() {
+  const q = (document.getElementById("search").value || "").toLowerCase();
+  const box = document.getElementById("lots");
+  box.innerHTML = LOTS.filter(l => !q || l.name.toLowerCase().includes(q) || l.desc.toLowerCase().includes(q))
+    .map(l =>
+      '<div class="lot-card">' +
+        '<div class="lot-emoji">' + l.emoji + '</div>' +
+        '<div class="lot-name">' + gbEsc(l.name) + '</div>' +
+        '<div class="lot-desc">' + gbEsc(l.desc) + '</div>' +
+        '<div class="lot-price">' + l.price + ' \u20BD</div>' +
+        '<div class="lot-seller">Продавец: ' + gbEsc(l.seller) + '</div>' +
+        '<button class="btn-primary" onclick="gbBuy(\'' + l.name.replace(/'/g, "\\'") + '\', ' + l.price + ')">Купить</button>' +
+      '</div>').join("") || '<p class="empty-note">Ничего не найдено</p>';
+}
+
+function gbBuy(itemName, price) {
+  const u = gbCurrentUser();
+  if (!u) { window.location.href = "login.html"; return; }
+  const tr = {
+    item: itemName, price: price, from: u.nick, status: "new", ts: Date.now()
+  };
+  gbDB.ref("transactions").push(tr).then(function() {
+    gbDB.ref("dialogs/" + u.nick + "/messages").push({
+      role: "user", from: u.nick,
+      text: "\u{1F6D2} Хочу купить: " + itemName + " за " + price + " \u20BD. Подтвердите сделку, пожалуйста.",
+      ts: Date.now()
+    });
+    alert("Заявка отправлена! Следите за ответом в разделе «Сообщения».");
+    window.location.href = "chat.html";
+  }).catch(function(e){ alert("Ошибка: " + e.message); });
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  document.getElementById("site-header").outerHTML = gbHeaderHTML().replace('<header', '<header id="site-header"');
+  renderLots();
+});
+</script>
 </body>
 </html>
