@@ -30,7 +30,6 @@ label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:12p
 textarea{resize:vertical;min-height:110px}
 main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:24px 16px 60px}
 
-/* ---------- Шапка ---------- */
 header{position:sticky;top:0;z-index:50;background:rgba(15,14,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
 .head-in{max-width:1180px;margin:0 auto;padding:0 16px;height:64px;display:flex;align-items:center;gap:18px}
 .logo{font-size:20px;font-weight:800;letter-spacing:.3px;color:var(--text);white-space:nowrap;display:flex;align-items:center;gap:8px}
@@ -54,7 +53,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .mobile-nav a.active{color:var(--text);background:var(--card2)}
 .mobile-nav.open{display:flex}
 
-/* ---------- Кнопки ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 22px;border-radius:11px;font-weight:700;font-size:14px;background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;transition:filter .2s,transform .1s}
 .btn:hover{filter:brightness(1.12)}
 .btn:active{transform:scale(.97)}
@@ -65,7 +63,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .btn.small{padding:7px 14px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
 
-/* ---------- Блоки ---------- */
 .hero{text-align:center;padding:44px 10px 36px}
 .hero h1{font-size:clamp(26px,5vw,42px);font-weight:800;line-height:1.2}
 .hero h1 span{background:linear-gradient(90deg,var(--accent2),#d946ef);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -82,7 +79,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .muted{color:var(--muted)}
 .small{font-size:13px}
 
-/* ---------- Каталог ---------- */
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
 .chip{padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;transition:all .2s}
 .chip:hover{color:var(--text)}
@@ -98,7 +94,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .tag.game{color:var(--accent2);border-color:var(--accent-dark)}
 .tag.sold{color:#ff8f8f;border-color:#7f1d1d;background:#2a0d0d}
 
-/* ---------- Статусы ---------- */
 .badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
 .b-pending{background:#3f3f46;color:#d4d4d8}
 .b-review{background:#4d3c00;color:#ffd94d}
@@ -107,7 +102,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .b-cancel{background:#5c0a0a;color:#ffb0b0}
 .b-rejected{background:#ff1744;color:#ffffff}
 
-/* ---------- Чат / обращения ---------- */
 .chat-wrap{display:flex;flex-direction:column;gap:4px;max-height:52vh;overflow-y:auto;padding:6px 2px}
 .msg{display:flex;gap:10px;margin:9px 0;align-items:flex-end}
 .msg.staff{flex-direction:row-reverse}
@@ -126,7 +120,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .locked-box{padding:14px;border-radius:11px;background:var(--bg2);border:1px dashed var(--border);color:var(--muted);text-align:center;font-size:14px}
 .status-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 
-/* ---------- Формы/модалки ---------- */
 .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;padding:24px;max-height:88vh;overflow-y:auto}
 .modal h3{margin-bottom:10px}
@@ -136,14 +129,12 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .auth-tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .err{color:#ff8f8f;font-size:13px;margin-top:10px;min-height:18px}
 
-/* ---------- Профиль ---------- */
 .profile-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
 .profile-head .avatar{width:84px;height:84px;font-size:30px}
 .balance-big{background:linear-gradient(135deg,var(--accent-dark),#4c1d95);border:1px solid var(--accent);border-radius:var(--radius);padding:22px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:18px}
 .balance-big .sum{font-size:30px;font-weight:800}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
-/* ---------- Админка ---------- */
 .tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px}
 .tab{padding:9px 18px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:13px;white-space:nowrap}
 .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -158,20 +149,17 @@ table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:m
 .log-row{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .log-row .who{font-weight:700;color:var(--accent2)}
 
-/* ---------- Тосты ---------- */
 #toasts{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(340px,90vw)}
 .toast{background:var(--card2);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;font-size:14px;box-shadow:var(--shadow);animation:tin .3s}
 .toast.err{border-color:var(--red)}
 @keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
-/* ---------- Футер ---------- */
 footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 .foot-in{max-width:1180px;margin:0 auto;padding:26px 16px;display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:space-between}
 .foot-links{display:flex;gap:20px;flex-wrap:wrap}
 .foot-links a{color:var(--muted);font-size:14px;font-weight:600}
 .foot-links a:hover{color:var(--text)}
 
-/* ---------- Адаптив: телефон ---------- */
 @media (max-width:820px){
   nav.main-nav{display:none}
   .burger{display:block}
@@ -240,9 +228,14 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 <script>
 /* =====================================================================
    GameBazaar — единый файл сайта (GitHub Pages + Firebase)
+   Версия v1.1 — исправлен чат обращений:
+   - сообщения поддержки теперь отображаются у обеих сторон;
+   - чат обновляется в реальном времени без перезагрузки;
+   - слушатели базы больше не дублируются;
+   - распознаются и старые сообщения (поле role), и новые (поле from).
    ===================================================================== */
 
-/* !!! НАСТРОЙКА: вставьте сюда конфиг вашего проекта Firebase !!! */
+/* !!! НАСТРОЙКА: конфиг вашего проекта Firebase (уже вписан) !!! */
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyCB74VZbRIccb-1GsJFPpOvImtEggFlhOU",
   authDomain: "gamebazaar-4e055.firebaseapp.com",
@@ -252,7 +245,6 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "208852148103",
   appId: "1:208852148103:web:084f1c812d8dcda389fd22"
 };
-
 
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
@@ -327,7 +319,6 @@ async function doRegister(){
   if(pass.length<6) return $('authErr').textContent='Пароль — минимум 6 символов';
   try{
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
-    // Первый зарегистрировавшийся становится владельцем сайта
     const snap = await db.ref('meta/ownerUid').transaction(cur => cur===null ? cred.user.uid : cur);
     const role = (snap.snapshot.val()===cred.user.uid) ? 'owner' : 'user';
     await db.ref('users/'+cred.user.uid).set({name, email, role, balance:0, photo:null, createdAt:Date.now()});
@@ -366,7 +357,7 @@ let bellUnsub = null;
 function watchBell(){
   if(bellUnsub) bellUnsub();
   if(!me){ if($('bellDot')) $('bellDot').style.display='none'; return; }
-  bellUnsub = db.ref('tickets').on('val', snap=>{
+  bellUnsub = db.ref('tickets').on('value', snap=>{
     let n=0;
     snap.forEach(t=>{
       const v=t.val();
@@ -388,7 +379,12 @@ function log(action, details){
 function render(){
   const h = location.hash.slice(1)||'home';
   const [path, qs] = h.split('?');
-  const params = new URLSearchParams(qs||'');
+  // Уходим со страницы обращения — отключаем слушатели
+  if(path!=='ticket' && (curTicketUnsub || tkMsgUnsub)){
+    if(curTicketUnsub){curTicketUnsub();curTicketUnsub=null;}
+    detachTicketMsgs();
+    curTicket=null; curTicketId=null; curTicketSig=null;
+  }
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
   const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, support:viewSupport, ticket:viewTicket, profile:viewProfile, admin:viewAdmin};
@@ -527,7 +523,6 @@ function renderLotChat(lotId, lot){
     const isPart = me && (me.uid===lot.ownerUid || parts[me.uid]);
     const msgs = Object.entries(data.messages||{}).map(([k,v])=>({id:k,...v})).sort((a,b)=>a.ts-b.ts);
     let inner = msgs.map(m=>{
-      const staffish = false;
       const right = me && m.uid===me.uid;
       return `<div class="msg ${right?'staff':''}">
         <div class="ava">${esc((m.name||'?')[0].toUpperCase())}</div>
@@ -751,16 +746,38 @@ async function submitTicket(type){
     status: type==='suggestion' ? 'pending' : 'review',
     subject, createdAt:Date.now(), lastFrom:'user', readByUser:true, closeReason:null
   });
-  await ref.child('messages').push({from:'user', name:prof.name||'?', text:fullText, ts:Date.now()});
+  await ref.child('messages').push({from:'user', role:'user', name:prof.name||'?', text:fullText, ts:Date.now()});
   toast(isDep?'Обращение на пополнение отправлено':'Обращение отправлено!');
   location.hash='ticket?id='+ref.key;
 }
 
-/* ---------- Просмотр обращения ---------- */
-let curTicket = null, curTicketId = null, curTicketUnsub = null;
+/* ===================== ПРОСМОТР ОБРАЩЕНИЯ (исправлено в v1.1) ===================== */
+let curTicket = null, curTicketId = null, curTicketUnsub = null, tkMsgUnsub = null, curTicketSig = null;
+function detachTicketMsgs(){ if(tkMsgUnsub){ tkMsgUnsub(); tkMsgUnsub=null; } }
+/* Сообщение поддержки: новое поле from='staff' ИЛИ старое role='admin' */
+function isStaffMsgOf(m){ return m.from==='staff' || m.role==='admin'; }
+function attachTicketMsgs(id){
+  detachTicketMsgs();
+  tkMsgUnsub = db.ref('tickets/'+id+'/messages').on('value', snap=>{
+    const box = $('chatBox'); if(!box) return;
+    const arr=[]; snap.forEach(m=>arr.push(m.val()));
+    arr.sort((a,b)=>a.ts-b.ts);
+    box.innerHTML = arr.length ? arr.map(m=>{
+      const st = isStaffMsgOf(m);
+      return `<div class="msg ${st?'staff':''}">
+        <div class="ava ${st?'sup':''}">${st?'G':esc((m.name||'?')[0].toUpperCase())}</div>
+        <div><div class="bubble">${esc(m.text).replace(/\n/g,'<br>')}</div>
+        <div class="meta" style="${st?'justify-content:flex-end':''}">${st?esc(m.name||supportName())+' <span class="verified">✓</span> · ':esc(m.name)+' · '}${timeStr(m.ts)}</div></div>
+      </div>`;
+    }).join('') : `<div class="muted small" style="padding:6px 2px">Сообщений пока нет.</div>`;
+    box.scrollTop = box.scrollHeight;
+  });
+}
 function viewTicket(){
   const id = new URLSearchParams(location.hash.split('?')[1]||'').get('id');
   if(curTicketUnsub){curTicketUnsub();curTicketUnsub=null;}
+  detachTicketMsgs();
+  curTicketSig = null;
   const app = $('app');
   app.innerHTML = '<div class="locked-box">Загрузка...</div>';
   curTicketUnsub = db.ref('tickets/'+id).on('value', snap=>{
@@ -773,75 +790,62 @@ function viewTicket(){
     const userBlocked = !handler && (closed || (t.status!=='working'));
     // Пользователь открыл — отмечаем прочитанным
     if(me && t.uid===me.uid && !t.readByUser) db.ref('tickets/'+id+'/readByUser').set(true);
-    let html = `<div class="row small" style="margin-bottom:10px"><a href="#support">← Все обращения</a></div>
-    <div class="card">
-      <div class="row" style="justify-content:space-between;gap:10px">
-        <div class="row" style="gap:8px"><span class="tag ${t.type!=='support'?'game':''}">${TICKET_TYPES[t.type]}</span><b>${esc(t.subject)}</b></div>
-        ${badge(t.status)}
-      </div>
-      <div class="muted small" style="margin-top:4px">${t.uid===me.uid?'Ваше обращение':'От: '+esc(t.uname)} · создано ${timeStr(t.createdAt)}</div>
-      <div class="chat-wrap" id="chatBox" style="margin-top:14px"></div>`;
-    // Блок ввода
-    if(handler){
-      html += `
-        ${closed? `<div class="locked-box" style="margin-top:12px">Обращение закрыто. Статус: ${badge(t.status)} — писать в закрытое обращение нельзя.</div>`
-        : `<div class="row" style="margin-top:12px">
-            <input id="tkMsg" placeholder="Ответ от имени поддержки..." onkeydown="if(event.key==='Enter')sendStaffMsg()">
-            <button class="btn" onclick="sendStaffMsg()">Ответить</button>
-          </div>
-          <div class="status-btns">
-            ${t.status!=='working'?`<button class="btn small ghost" onclick="setStatus('working')">В работе</button>`:''}
-            <button class="btn small" style="background:linear-gradient(135deg,#b91c1c,#7f1d1d)" onclick="setStatus('approved')">Одобрено</button>
-            <button class="btn small ghost" onclick="showRejectForm()">Отказано</button>
-            <button class="btn small ghost" style="border-color:#7f1d1d;color:#ff9b9b" onclick="setStatus('cancel')">Отмена</button>
-          </div>
-          ${t.type==='deposit'?`
-            <div class="notice" style="margin-top:14px">
-              <b>Зачисление баланса</b>
-              <div class="row" style="margin-top:8px">
-                <input id="depAmount" type="number" min="${MIN_DEPOSIT}" placeholder="Сумма, ₽" style="max-width:180px">
-                <button class="btn small" onclick="creditFromTicket('${t.uid}')">Зачислить на баланс</button>
-              </div>
-            </div>`:''}`}
-        ${t.status==='rejected' && !handler? `<div class="notice warn">Причина отказа указана в переписке ниже.</div>`:''}
-        </div>`;
-    } else {
-      if(closed){
-        html += `<div class="locked-box" style="margin-top:12px">Обращение закрыто со статусом ${badge(t.status)}. ${t.status==='rejected'?'Причина отказа — в переписке.':''} Открыть новое можно в разделе «Поддержка».</div>`;
-      } else if(userBlocked){
-        html += `<div class="locked-box" style="margin-top:12px">⏳ Ваше обращение на рассмотрении. Дописать можно будет после первого ответа поддержки — мы уведомим вас.</div>`;
+    /* Каркас перерисовываем только при смене статуса/прав —
+       иначе каждое обновление пересоздавало чат и дублировало слушатели */
+    const sig = [t.status, String(handler), String(closed), String(userBlocked)].join('|');
+    if(sig !== curTicketSig){
+      curTicketSig = sig;
+      let html = `<div class="row small" style="margin-bottom:10px"><a href="#support">← Все обращения</a></div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;gap:10px">
+          <div class="row" style="gap:8px"><span class="tag ${t.type!=='support'?'game':''}">${TICKET_TYPES[t.type]}</span><b>${esc(t.subject)}</b></div>
+          ${badge(t.status)}
+        </div>
+        <div class="muted small" style="margin-top:4px">${t.uid===me.uid?'Ваше обращение':'От: '+esc(t.uname)} · создано ${timeStr(t.createdAt)}</div>
+        <div class="chat-wrap" id="chatBox" style="margin-top:14px"></div>`;
+      if(handler){
+        html += `
+          ${closed? `<div class="locked-box" style="margin-top:12px">Обращение закрыто. Статус: ${badge(t.status)} — писать в закрытое обращение нельзя.</div>`
+          : `<div class="row" style="margin-top:12px">
+              <input id="tkMsg" placeholder="Ответ от имени поддержки..." onkeydown="if(event.key==='Enter')sendStaffMsg()">
+              <button class="btn" onclick="sendStaffMsg()">Ответить</button>
+            </div>
+            <div class="status-btns">
+              ${t.status!=='working'?`<button class="btn small ghost" onclick="setStatus('working')">В работе</button>`:''}
+              <button class="btn small" style="background:linear-gradient(135deg,#b91c1c,#7f1d1d)" onclick="setStatus('approved')">Одобрено</button>
+              <button class="btn small ghost" onclick="showRejectForm()">Отказано</button>
+              <button class="btn small ghost" style="border-color:#7f1d1d;color:#ff9b9b" onclick="setStatus('cancel')">Отмена</button>
+            </div>
+            ${t.type==='deposit'?`
+              <div class="notice" style="margin-top:14px">
+                <b>Зачисление баланса</b>
+                <div class="row" style="margin-top:8px">
+                  <input id="depAmount" type="number" min="${MIN_DEPOSIT}" placeholder="Сумма, ₽" style="max-width:180px">
+                  <button class="btn small" onclick="creditFromTicket('${t.uid}')">Зачислить на баланс</button>
+                </div>
+              </div>`:''}`}
+          </div>`;
       } else {
-        html += `<div class="row" style="margin-top:12px">
-          <input id="tkMsg" placeholder="Допишите сообщение..." onkeydown="if(event.key==='Enter')sendUserMsg()">
-          <button class="btn" onclick="sendUserMsg()">Отправить</button></div>`;
+        if(closed){
+          html += `<div class="locked-box" style="margin-top:12px">Обращение закрыто со статусом ${badge(t.status)}. ${t.status==='rejected'?'Причина отказа — в переписке.':''} Открыть новое можно в разделе «Поддержка».</div>`;
+        } else if(userBlocked){
+          html += `<div class="locked-box" style="margin-top:12px">⏳ Ваше обращение на рассмотрении. Дописать можно будет после первого ответа поддержки — мы уведомим вас.</div>`;
+        } else {
+          html += `<div class="row" style="margin-top:12px">
+            <input id="tkMsg" placeholder="Допишите сообщение..." onkeydown="if(event.key==='Enter')sendUserMsg()">
+            <button class="btn" onclick="sendUserMsg()">Отправить</button></div>`;
+        }
       }
+      app.innerHTML = html + `</div>`;
+      attachTicketMsgs(id);
     }
-    app.innerHTML = html + `</div>`;
-    renderTicketChat(t);
-  });
-}
-function renderTicketChat(t){
-  const box = $('chatBox'); if(!box) return;
-  db.ref('tickets/'+curTicketId+'/messages').on('value', snap=>{
-    const arr=[]; snap.forEach(m=>arr.push(m.val()));
-    arr.sort((a,b)=>a.ts-b.ts);
-    box.innerHTML = arr.map(m=>{
-      const isStaffMsg = m.from==='staff';
-      const right = isStaffMsg ? (isStaff()? true : true) : false; // поддержка всегда справа
-      return `<div class="msg ${isStaffMsg?'staff':''}">
-        <div class="ava ${isStaffMsg?'sup':''}">${isStaffMsg?'G':(m.name||'?')[0].toUpperCase()}${m.photo?`<img src="${m.photo}" alt="">`:''}</div>
-        <div><div class="bubble">${esc(m.text).replace(/\n/g,'<br>')}</div>
-        <div class="meta" style="${isStaffMsg?'justify-content:flex-end':''}">${isStaffMsg?esc(m.name||supportName())+' <span class="verified">✓</span> · ':esc(m.name)+' · '}${timeStr(m.ts)}</div></div>
-      </div>`;
-    }).join('');
-    box.scrollTop = box.scrollHeight;
   });
 }
 async function sendUserMsg(){
   const inp = $('tkMsg'); const text = inp.value.trim(); if(!text) return;
   inp.value='';
   const ref = db.ref('tickets/'+curTicketId);
-  await ref.child('messages').push({from:'user', name:prof.name||'?', text, ts:Date.now()});
+  await ref.child('messages').push({from:'user', role:'user', name:prof.name||'?', text, ts:Date.now()});
   await ref.update({lastFrom:'user', readByUser:true});
 }
 async function sendStaffMsg(){
@@ -849,9 +853,9 @@ async function sendStaffMsg(){
   inp.value='';
   const ref = db.ref('tickets/'+curTicketId);
   const snap = await ref.get(); const t = snap.val(); if(!t) return;
-  await ref.child('messages').push({from:'staff', name:supportName(), text, ts:Date.now()});
+  await ref.child('messages').push({from:'staff', role:'admin', name:supportName(), text, ts:Date.now()});
   const upd = {lastFrom:'staff', readByUser:false};
-  if(['review','pending'].includes(t.status)) upd.status='working'; // первое сообщение хелпера => В работе
+  if(['review','pending'].includes(t.status)) upd.status='working';
   await ref.update(upd);
   log('Ответ в обращении', `«${t.subject}» (${TICKET_TYPES[t.type]})`);
   toast('Ответ отправлен');
@@ -859,11 +863,10 @@ async function sendStaffMsg(){
 async function setStatus(st, reason){
   const ref = db.ref('tickets/'+curTicketId);
   const snap = await ref.get(); const t = snap.val(); if(!t) return;
-  if(st==='rejected' && !reason) return; // причина обязательна — через showRejectForm
-  const upd = {status:st};
-  await ref.update(upd);
+  if(st==='rejected' && !reason) return;
+  await ref.update({status:st});
   if(st==='rejected'){
-    await ref.child('messages').push({from:'staff', name:supportName(), text:'Ваше обращение отклонено. Причина: '+reason, ts:Date.now()});
+    await ref.child('messages').push({from:'staff', role:'admin', name:supportName(), text:'Ваше обращение отклонено. Причина: '+reason, ts:Date.now()});
     await ref.update({lastFrom:'staff', readByUser:false});
   }
   log('Статус обращения', `«${t.subject}» → ${STATUS[st].label}${reason?`: ${reason}`:''}`);
@@ -1027,7 +1030,7 @@ auth.onAuthStateChanged(user=>{
     profRef = db.ref('users/'+user.uid);
     profRef.on('value', s=>{
       prof = s.val();
-      if(!prof){ // профиль не создан (например, после импорта) — создаём
+      if(!prof){
         db.ref('users/'+user.uid).update({name:user.email.split('@')[0], email:user.email, role:'user', balance:0, createdAt:Date.now()});
         return;
       }
