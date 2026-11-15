@@ -224,7 +224,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <button class="bell" id="dmBtn" style="display:none" title="Личные сообщения" onclick="location.hash='inbox'">📮<span class="dot" id="dmDot" style="display:none">0</span></button>
       <button class="bell" id="bellBtn" style="display:none" title="Уведомления" onclick="openNotifications()">🔔<span class="dot" id="bellDot" style="display:none">0</span></button>
       <div class="avatar" id="avatarBtn" style="display:none" onclick="location.hash='profile'"></div>
-      <a class="btn small" href="#" id="loginBtn" style="display:none" onclick="location.hash='profile'">Войти</a>
+      <a class="btn small" href="#profile" id="loginBtn" style="display:none">Войти</a>
       <button class="burger" id="burgerBtn" onclick="document.getElementById('mobileNav').classList.toggle('open')">☰</button>
     </div>
   </div>
@@ -245,7 +245,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.7 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.8 Space</div>
   </div>
 </footer>
 
@@ -255,8 +255,9 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.7: починены кнопка «Выйти», опечатки разметки, вычищен код.
-   Живой кэш пользователей и исправленный фильтр цифр сохранены.
+   v3.8: починены ссылки «Войти» / «Войдите, чтобы пополнить» /
+   «Войдите, чтобы купить» — теперь честный #profile без двойного
+   прыжка (на телефоне форма входа больше не мигает и не исчезает).
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -521,7 +522,7 @@ function viewHome(){
         </div>
         ${(me&&prof)
           ? '<button class="btn" onclick="openDeposit()">Пополнить баланс</button>'
-          : '<a class="btn" href="#" onclick="location.hash=\'profile\'">Войдите, чтобы пополнить</a>'}
+          : '<a class="btn" href="#profile">Войдите, чтобы пополнить</a>'}
       </div>
       ${(me&&prof)?`<div class="muted small" style="margin-top:8px">Ваш ID: <b style="color:var(--text)">${padId(prof.id||0)}</b> — называйте его при пополнении</div>`:''}
     </div>
@@ -633,7 +634,7 @@ function renderLotPage(){
           : '<button class="btn" '+(canBuy?'':'disabled')+' onclick="buyLot(\''+id+'\')">Купить за '+fmt(l.price)+' ₽</button>'+
              (me? '<button class="btn ghost" onclick="dmWriteSellerByLot(\''+id+'\')">✉️ Написать продавцу</button>'+
                     (!enough? '<span class="muted small">Пополните баланс, чтобы покупать</span>':'')
-                  : '<a class="btn ghost" href="#" onclick="location.hash=\'profile\'">Войдите, чтобы купить</a>')}
+                  : '<a class="btn ghost" href="#profile">Войдите, чтобы купить</a>')}
         </div>`}
     </div>
     <div class="section-title">Чат с продавцом</div>
