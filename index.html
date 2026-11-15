@@ -58,6 +58,7 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .btn.ghost:hover{border-color:var(--accent)}
 .btn.small{padding:7px 14px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
+.btn.danger{background:linear-gradient(135deg,#ef4444,#991b1b)}
 .banner{background:radial-gradient(120% 140% at 20% 0%,#2c2050 0%,#1b1630 45%,#141221 100%);border:1px solid var(--accent-dark);border-radius:18px;padding:46px 24px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow)}
 .banner::before{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 70%);pointer-events:none}
 .banner::after{content:'';position:absolute;bottom:-80px;left:-40px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(217,70,239,.22),transparent 70%);pointer-events:none}
@@ -82,10 +83,6 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .chip{padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;transition:all .2s}
 .chip:hover{color:var(--text)}
 .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-.tab{padding:9px 18px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:14px;transition:all .2s}
-.tab:hover{color:var(--text);border-color:var(--accent)}
-.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .lots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .lot-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:transform .15s,border-color .2s;display:flex;flex-direction:column;gap:10px}
 .lot-card:hover{transform:translateY(-3px);border-color:var(--accent)}
@@ -176,13 +173,13 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
       <a href="#admin" data-nav="admin" id="navAdmin" style="display:none">Админ-панель</a>
     </nav>
     <div class="head-right">
-      <div class="balance-chip" id="balanceChip" style="display:none" title="Ваш баланс">
+      <div class="balance-chip" id="balanceChip" style="display:none" title="Ваш баланс" onclick="location.hash='profile'">
         <span>Баланс:</span><span id="balanceVal">0</span> ₽
       </div>
-      <button class="bell" id="bellBtn" style="display:none" title="Уведомления">🔔<span class="dot" id="bellDot" style="display:none">0</span></button>
+      <button class="bell" id="bellBtn" style="display:none" title="Уведомления" onclick="openNotifications()">🔔<span class="dot" id="bellDot" style="display:none">0</span></button>
       <div class="avatar" id="avatarBtn" style="display:none" onclick="location.hash='profile'"></div>
-      <a class="btn small" href="#" id="loginBtn" style="display:none">Войти</a>
-      <button class="burger" id="burgerBtn">☰</button>
+      <a class="btn small" href="#" id="loginBtn" style="display:none" onclick="location.hash='profile'">Войти</a>
+      <button class="burger" id="burgerBtn" onclick="document.getElementById('mobileNav').classList.toggle('open')">☰</button>
     </div>
   </div>
   <div class="mobile-nav" id="mobileNav">
@@ -199,8 +196,9 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
   <div class="foot-in">
     <div class="foot-links">
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
+      <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v2.7</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v2.9</div>
   </div>
 </footer>
 
@@ -210,8 +208,7 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v2.7: добавлены стили вкладок админ-панели (.tabs/.tab), счётчик
-   «Лотов» в обзоре больше не висит на «…».
+   v2.9: «Пополнить баланс» ведёт в ВК-бот сообщества club243328738
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -235,7 +232,7 @@ const GAMES = ['Black Russia','PUBG','Standoff 2'];
 const CATEGORIES = ['Игровая валюта','Аккаунт','Скины','Другое'];
 const MIN_DEPOSIT = 25;
 const OWNER_NICK = 'Sergey_Sergeev';
-const VK_LINK = 'https://vk.ru/sergeyssssssssss';
+const VK_BOT_LINK = 'https://vk.me/club243328738'; // чат с ботом пополнения
 const GAME_IMG = {
   'Black Russia':'img/blackrussia.jpg',
   'PUBG':'img/pubg.png',
@@ -325,6 +322,37 @@ async function doLogin(){
 }
 function doLogout(){ auth.signOut(); location.hash='home'; }
 
+/* Слушатель профиля */
+auth.onAuthStateChanged(user=>{
+  me = user || null;
+  if(profRef){ profRef.off(); profRef=null; }
+  prof = null;
+  if(me){
+    profRef = db.ref('users/'+me.uid);
+    profRef.on('value', snap=>{
+      prof = snap && typeof snap.val==='function' ? (snap.val()||null) : null;
+      if(!prof && me){ // профиль ещё не создан — создаём базовый
+        db.ref('users/'+me.uid).get().then(s=>{
+          if(!s.exists()){
+            db.ref('users/'+me.uid).set({
+              name:'Игрок'+(Math.floor(Math.random()*9000)+1000),
+              email:me.email||'', role:'user', verified:false,
+              id:null, balance:0, photo:null, createdAt:Date.now()
+            }).then(async ()=>{
+              const uid = await assignUserId('');
+              await db.ref('users/'+me.uid+'/id').set(uid);
+            });
+          }
+        });
+      }
+      updateHeader(); render();
+    });
+    watchBell();
+  } else {
+    watchBell(); updateHeader(); render();
+  }
+});
+
 /* ===================== ШАПКА / УВЕДОМЛЕНИЯ ===================== */
 function updateHeader(){
   const logged = !!me;
@@ -334,7 +362,7 @@ function updateHeader(){
   $('loginBtn').style.display = logged ? 'none':'inline-flex';
   if(logged && prof){
     $('balanceVal').textContent = fmt(prof.balance);
-    $('avatarBtn').innerHTML = prof.photo ? `<img src="${prof.photo}" alt="">` : esc((prof.name||'?')[0].toUpperCase());
+    $('avatarBtn').innerHTML = prof.photo ? `<img src="${esc(prof.photo)}" alt="">` : esc((prof.name||'?')[0].toUpperCase());
     $('avatarBtn').title = prof.name+' — профиль';
     const adm = isOwnerAdmin();
     $('navAdmin').style.display = adm?'':'none';
@@ -346,12 +374,12 @@ function updateHeader(){
 let bellUnsub = null;
 let notifs = [];
 function watchBell(){
-  if(bellUnsub) bellUnsub();
+  if(bellUnsub){ bellUnsub(); bellUnsub=null; }
   notifs = [];
-  if(!me){ if($('bellDot')) $('bellDot').style.display='none'; return; }
+  if(!me){ const d=$('bellDot'); if(d) d.style.display='none'; return; }
   bellUnsub = db.ref('notifications/'+me.uid).limitToLast(50).on('value', snap=>{
     notifs = []; let n=0;
-    snap.forEach(c=>{ const v=c.val()||{}; notifs.push({key:c.key,...v}); if(!v.read) n++; });
+    if(snap && snap.forEach) snap.forEach(c=>{ const v=c.val()||{}; notifs.push({key:c.key,...v}); if(!v.read) n++; });
     const d=$('bellDot'); if(!d) return;
     d.style.display = n? 'flex':'none';
     d.textContent = n;
@@ -367,7 +395,8 @@ function openNotifications(){
       <button class="btn ghost" onclick="closeModal()">Закрыть</button>
     </div>`);
   db.ref('notifications/'+me.uid).once('value').then(s=>{
-    s.forEach(c=>{ if(!c.val().read) db.ref('notifications/'+me.uid+'/'+c.key+'/read').set(true); });
+    if(!s || !s.forEach) return;
+    s.forEach(c=>{ if(c.val() && !c.val().read) db.ref('notifications/'+me.uid+'/'+c.key+'/read').set(true); });
   });
 }
 async function pushNotif(uid, text){
@@ -398,14 +427,14 @@ window.addEventListener('hashchange', render);
 let catGame='', catCat='';
 db.ref('lots').on('value', snap=>{
   try{
-    const arr=[]; snap.forEach(l=>arr.push({id:l.key, ...(l.val()||{})}));
+    const arr=[]; if(snap && snap.forEach) snap.forEach(l=>arr.push({id:l.key, ...(l.val()||{})}));
     arr.sort((a,b)=>b.createdAt-a.createdAt);
     window._lots = arr;
     renderLots();
     renderMyLots();
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='lot' && curLotId) renderLotPage();
-    if(path==='admin' && admTab==='overview') renderAdmStats();
+    if(path==='admin') renderAdminData();
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
 });
 
@@ -441,26 +470,18 @@ function viewHome(){
     <div class="section-title">Как это работает</div>
     <div class="card">
       <div class="row" style="gap:24px">
-        <div style="flex:1;min-width:200px"><b>1. Пополни баланс</b><p class="muted small">Минимум ${MIN_DEPOSIT} ₽, без комиссии. Пополнение — через ВКонтакте по вашему ID.</p></div>
+        <div style="flex:1;min-width:200px"><b>1. Пополни баланс</b><p class="muted small">Минимум ${MIN_DEPOSIT} ₽, без комиссии. Пополнение — через нашего ВК-бота.</p></div>
         <div style="flex:1;min-width:200px"><b>2. Выбери лот</b><p class="muted small">Листай каталог, присматривай и пиши продавцу прямо на сайте.</p></div>
         <div style="flex:1;min-width:200px"><b>3. Покупай и продавай</b><p class="muted small">Выставляй свои лоты с картинкой и получай деньги на внутренний баланс.</p></div>
       </div>
     </div>`;
 }
 
-/* ===================== ПОПОЛНЕНИЕ ЧЕРЕЗ ВК ===================== */
+/* ===================== ПОПОЛНЕНИЕ — переход в ВК-бота ===================== */
 function openDeposit(){
-  const myId = (me&&prof) ? padId(prof.id||0) : null;
-  modal(`
-    <h3>Пополнение баланса</h3>
-    <p class="muted small">1. Переведите сумму (минимум ${MIN_DEPOSIT} ₽, без комиссии) на реквизиты владельца во ВКонтакте:</p>
-    <p style="margin:10px 0"><a class="btn wide" href="${VK_LINK}" target="_blank" rel="noopener">Написать владельцу во ВКонтакте</a></p>
-    <p class="muted small">2. После перевода сообщите владельцу ваш ID — он зачислит деньги на баланс.</p>
-    ${myId?`<div class="notice">Ваш ID: <b>${myId}</b></div>`
-          :`<div class="notice">Сначала войдите или зарегистрируйтесь — ID выдаётся автоматически.</div>`}
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="closeModal()">Понятно</button>
-    </div>`);
+  if(!(me && prof)) return toast('Сначала войдите на сайт', true);
+  window.open(VK_BOT_LINK, '_blank');
+  toast('Открываем бота пополнения во ВКонтакте');
 }
 
 /* ===================== КАТАЛОГ ===================== */
@@ -501,18 +522,20 @@ function renderLots(){
 }
 
 /* ===================== ЛОТ ===================== */
-let curLotId = null, lotChatUnsub = null, curChatLotId = null;
+let curLotId = null, lotChatUnsub = null, curChatLotId = null, curLotObj = null;
 const chatCache = {};
 function detachLotChat(){
   if(lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; }
   curChatLotId = null;
   curLotId = null;
+  curLotObj = null;
 }
 function viewLot(){
   const id = new URLSearchParams(location.hash.split('?')[1]||'').get('id');
   closeModal();
   if(curChatLotId && curChatLotId!==id && lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; curChatLotId=null; }
   curLotId = id;
+  curLotObj = null;
   renderLotPage();
 }
 function renderLotPage(){
@@ -522,6 +545,7 @@ function renderLotPage(){
   if(!all){ app.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
   const l = all.find(x=>x.id===id);
   if(!l){ app.innerHTML='<div class="card">Лот не найден или удалён.</div>'; return; }
+  curLotObj = l;
   const mine = me && l.ownerUid===me.uid;
   const sold = l.status==='sold';
   const canBuy = me && !mine && !sold && prof && Number(prof.balance||0) >= Number(l.price);
@@ -580,363 +604,342 @@ function attachLotChat(lotId, lot){
   if(curChatLotId !== lotId){
     if(lotChatUnsub) lotChatUnsub();
     curChatLotId = lotId;
+    curLotObj = lot;
     lotChatUnsub = db.ref('lotChats/'+lotId).on('value', snap=>{
       if(curChatLotId !== lotId) return;
       try{
         if(!snap || typeof snap.val !== 'function') return;
         chatCache[lotId] = snap.val()||{};
-        drawChat(lotId, lot);
+        drawChat(lotId, curLotObj||lot);
       }catch(e){ toast('Ошибка чата лота: '+e.message, true); }
     });
   } else {
+    curLotObj = lot;
     drawChat(lotId, lot);
   }
 }
 function drawChat(lotId, lot){
-  const box = $('lotChat'); if(!box) return;
-  const oldInp = box.querySelector('#lotMsg');
-  const savedText = oldInp ? oldInp.value : '';
-  const data = chatCache[lotId]||{};
-  const parts = data.participants||{};
-  const isPart = me && (me.uid===lot.ownerUid || parts[me.uid]);
-  const msgs = Object.entries(data.messages||{}).map(([k,v])=>({id:k,...v})).sort((a,b)=>a.ts-b.ts);
-  let inner = msgs.map(m=>{
-    const right = me && m.uid===me.uid;
-    return `<div class="msg ${right?'staff':''}">
-      <div class="ava">${esc((m.name||'?')[0].toUpperCase())}</div>
-      <div><div class="bubble">${esc(m.text).replace(/\n/g,'<br>')}</div><div class="meta">${esc(m.name)}${ownerTag(m.name)} · ${timeStr(m.ts)}</div></div>
+  const box = $('lotChat'); if(!box || curChatLotId!==lotId) return;
+  const msgs = chatCache[lotId]||{};
+  const list = Object.keys(msgs).map(k=>({key:k, ...msgs[k]})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const canWrite = me && lot && !['sold'].includes(lot.status);
+  const html = list.map(m=>{
+    const mineMsg = me && m.fromUid===me.uid;
+    const ava = m.fromPhoto ? `<img src="${esc(m.fromPhoto)}" alt="">` : esc((m.fromName||'?')[0].toUpperCase());
+    return `
+    <div class="msg ${mineMsg?'staff':''}">
+      <div class="ava">${ava}</div>
+      <div>
+        <div class="bubble">${esc(m.text)}</div>
+        <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+      </div>
     </div>`;
-  }).join('');
-  if(!msgs.length) inner = `<div class="muted small" style="padding:6px 2px">Сообщений пока нет. Задайте вопрос продавцу о лоте.</div>`;
-  const canWrite = isPart;
-  box.innerHTML = `<div class="chat-wrap">${inner}</div>
-    ${me ? (canWrite ? `
-      <div class="row" style="margin-top:10px">
-        <input id="lotMsg" placeholder="Сообщение продавцу..." onkeydown="if(event.key==='Enter')sendLotMsg('${lotId}')">
-        <button class="btn" onclick="sendLotMsg('${lotId}')">➤</button>
+  }).join('') || `<div class="locked-box">Сообщений пока нет — напишите первым${lot?` про «${esc(lot.title)}»`:''}.</div>`;
+  box.innerHTML = `<div class="chat-wrap" id="chatList">${html}</div>
+    ${canWrite? `
+      <div class="row" style="margin-top:12px">
+        <input id="chatInput" placeholder="Ваше сообщение…" maxlength="500"
+               onkeydown="if(event.key==='Enter')sendChatMsg('${lotId}')">
+        <button class="btn" onclick="sendChatMsg('${lotId}')">Отправить</button>
       </div>`
-      : `<div class="row" style="margin-top:10px"><button class="btn ghost" onclick="startLotChat('${lotId}')">Написать продавцу</button></div>`)
-      : `<div class="locked-box" style="margin-top:10px"><a href="#" onclick="location.hash='profile'">Войдите</a>, чтобы написать продавцу</div>`}`;
-  const ni = box.querySelector('#lotMsg');
-  if(ni && savedText) ni.value = savedText;
-  const cw = box.querySelector('.chat-wrap');
-  if(cw) cw.scrollTop = cw.scrollHeight;
+    : `<div class="locked-box" style="margin-top:12px">${me? 'Чат закрыт — лот продан.' : 'Войдите, чтобы писать в чат.'}</div>`}`;
+  const w = $('chatList'); if(w) w.scrollTop = w.scrollHeight;
 }
-async function sendLotMsg(lotId){
-  const inp = $('lotMsg'); const text = inp.value.trim();
+async function sendChatMsg(lotId){
+  const inp = $('chatInput'); if(!inp) return;
+  const text = inp.value.trim();
   if(!text) return;
   inp.value='';
-  const usnap = await db.ref('lots/'+lotId).get();
-  const l = usnap && usnap.val ? usnap.val() : null;
-  if(!l) return;
-  await db.ref('lotChats/'+lotId+'/messages').push({uid:me.uid, name:prof.name||'?', text, ts:Date.now()});
-  db.ref('lotChats/'+lotId+'/participants/'+me.uid).set(true);
-  db.ref('lotChats/'+lotId+'/participants/'+l.ownerUid).set(true);
-  if(me.uid !== l.ownerUid){
-    await pushNotif(l.ownerUid, `${prof.name||'?'} ответил в чате лота «${l.title}»`);
-  }
-}
-function startLotChat(lotId){
-  const inp = $('lotChat').querySelector('#lotMsg');
-  if(inp){ inp.focus(); return; }
-  $('lotChat').innerHTML = `<div class="row" style="margin-top:4px">
-    <input id="lotMsg" placeholder="Ваше сообщение продавцу..." onkeydown="if(event.key==='Enter')sendLotMsg('${lotId}')">
-    <button class="btn" onclick="sendLotMsg('${lotId}')">➤</button></div>`;
-  $('lotMsg').focus();
+  await db.ref('lotChats/'+lotId).push({
+    fromUid:me.uid, fromName:prof? prof.name:'?',
+    fromPhoto: prof? (prof.photo||null):null,
+    text, ts:Date.now()
+  });
 }
 
 /* ===================== ПРОДАТЬ ===================== */
-let _lotImg = null;
 function viewSell(){
-  if(!me) return $('app').innerHTML = viewAuth();
-  if(!prof) return $('app').innerHTML = '<div class="locked-box">Загрузка профиля…</div>';
-  _lotImg = null;
+  if(!me){ $('app').innerHTML = viewAuth(); return; }
   $('app').innerHTML = `
     <h2>Выставить лот</h2>
-    <p class="muted small" style="margin-bottom:16px">Ваш лот появится в каталоге, а покупатели смогут писать вам в чат.</p>
-    <div class="card" style="max-width:560px">
-      <label>Игра</label><select id="sGame">${GAMES.map(g=>`<option>${g}</option>`).join('')}</select>
-      <label>Категория</label><select id="sCat">${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
-      <label>Название лота</label><input id="sTitle" maxlength="60" placeholder="Например: 10 млн игровых рублей">
-      <label>Описание</label><textarea id="sDesc" maxlength="1000" placeholder="Подробно опишите лот..."></textarea>
-      <label>Цена, ₽</label><input id="sPrice" type="number" min="1" placeholder="0">
-      <label>Картинка лота — ссылка</label><input id="sImgUrl" placeholder="https://... (необязательно)">
-      <div class="row" style="margin-top:10px">
-        <label class="btn small ghost" style="margin:0;cursor:pointer">Выбрать файл<input type="file" accept="image/*" hidden onchange="pickLotImg(this)"></label>
-        <span class="muted small" id="imgInfo">или вставьте ссылку выше</span>
-      </div>
-      <img id="imgPrev" class="img-preview" style="display:none" alt="">
-      <div class="err" id="sErr"></div>
-      <button class="btn wide" style="margin-top:12px" onclick="createLot()">Выставить лот</button>
+    <div class="card" style="max-width:640px;margin-top:14px">
+      <label>Игра</label>
+      <select id="sellGame">${GAMES.map(g=>`<option>${g}</option>`).join('')}</select>
+      <label>Категория</label>
+      <select id="sellCat">${CATEGORIES.map(c=>`<option>${c}</option>`).join('')}</select>
+      <label>Название лота</label>
+      <input id="sellTitle" maxlength="80" placeholder="Например: 5000 вирт Black Russia">
+      <label>Описание</label>
+      <textarea id="sellDesc" maxlength="1000" placeholder="Опишите товар: что входит, как передадите, сроки"></textarea>
+      <label>Цена, ₽</label>
+      <input id="sellPrice" type="number" min="1" placeholder="Например: 500">
+      <label>Ссылка на картинку (необязательно)</label>
+      <input id="sellImg" placeholder="https://... прямая ссылка на изображение">
+      <img id="sellPreview" class="img-preview" style="display:none" alt="">
+      <div class="err" id="sellErr"></div>
+      <button class="btn wide" style="margin-top:12px" onclick="submitLot()">Выставить лот</button>
     </div>`;
-}
-function pickLotImg(input){
-  const f = input.files[0]; if(!f) return;
-  compressImg(f, 900, 0.72, data=>{
-    if(data.length > 400000) return toast('Картинка слишком большая, выберите другую', true);
-    _lotImg = data;
-    const p = $('imgPrev'); p.src = data; p.style.display='block';
-    $('imgInfo').textContent = 'файл выбран, сжат и готов к загрузке';
+  $('sellImg').addEventListener('input', e=>{
+    const p = $('sellPreview');
+    const v = e.target.value.trim();
+    if(v){ p.src=v; p.style.display='block'; } else p.style.display='none';
   });
 }
-function compressImg(file, maxDim, quality, cb){
-  const img = new Image();
-  const rd = new FileReader();
-  rd.onload = e => { img.src = e.target.result; };
-  img.onload = ()=>{
-    const k = Math.min(1, maxDim/Math.max(img.width, img.height));
-    const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(img.width*k));
-    c.height = Math.max(1, Math.round(img.height*k));
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    cb(c.toDataURL('image/jpeg', quality));
-  };
-  rd.readAsDataURL(file);
-}
-async function createLot(){
-  if(!me || !prof) return toast('Профиль ещё загружается, подожди секунду', true);
-  const title = $('sTitle').value.trim();
-  const desc = $('sDesc').value.trim();
-  const price = parseInt($('sPrice').value);
-  if(title.length<3) return $('sErr').textContent='Введите название (от 3 символов)';
-  if(!desc) return $('sErr').textContent='Добавьте описание';
-  if(!price || price<1) return $('sErr').textContent='Укажите цену от 1 ₽';
-  const img = _lotImg || $('sImgUrl').value.trim() || null;
-  await db.ref('lots').push({ownerUid:me.uid, ownerName:prof.name||'?', game:$('sGame').value, category:$('sCat').value, title, desc, price, img, status:'active', createdAt:Date.now()});
-  _lotImg = null;
-  toast('Лот опубликован!');
-  location.hash='catalog';
+async function submitLot(){
+  if(!me) return;
+  const game = $('sellGame').value;
+  const category = $('sellCat').value;
+  const title = $('sellTitle').value.trim();
+  const desc = $('sellDesc').value.trim();
+  const price = Number($('sellPrice').value);
+  let img = $('sellImg').value.trim();
+  if(title.length<3) return $('sellErr').textContent='Название — минимум 3 символа';
+  if(desc.length<5) return $('sellErr').textContent='Добавьте описание лота';
+  if(!price || price<=0) return $('sellErr').textContent='Укажите цену больше нуля';
+  try{
+    await db.ref('lots').push({
+      game, category, title, desc, price,
+      img: img||GAME_IMG[game]||null,
+      ownerUid:me.uid, ownerName:prof? prof.name:'?', status:'active', createdAt:Date.now()
+    });
+    log('Выставлен лот', `«${title}» за ${fmt(price)} ₽`);
+    toast('Лот опубликован!');
+    location.hash='profile';
+  }catch(e){ $('sellErr').textContent = e.message; }
 }
 
 /* ===================== ПРОФИЛЬ ===================== */
-function viewProfile(){
-  if(!me) return $('app').innerHTML = viewAuth();
-  if(!prof) return $('app').innerHTML = '<div class="locked-box">Загрузка профиля…</div>';
-  const roleLabel = ({owner:'Владелец',admin:'Администратор',helper:'Хелпер',user:'Пользователь'})[prof.role||'user'];
-  $('app').innerHTML = `
-    <h2>Мой профиль</h2>
-    <div class="card" style="margin-top:16px">
-      <div class="profile-head">
-        <div class="avatar" id="profAva"></div>
-        <div style="flex:1;min-width:200px">
-          <label>Никнейм</label><input id="pName" value="${esc(prof.name||'')}" maxlength="24">
-          <div class="row" style="margin-top:10px">
-            <button class="btn small" onclick="saveName()">Сохранить имя</button>
-            <label class="btn small ghost" style="margin:0;cursor:pointer">Сменить фото<input type="file" accept="image/*" hidden onchange="uploadPhoto(this)"></label>
-            <span class="badge ${prof.role==='owner'?'owner-badge':'b-pending'}">${roleLabel}</span>
-            ${prof.verified?'<span class="verified">✓</span>':''}
-          </div>
-          <div class="muted small" style="margin-top:10px">Ваш ID: <b style="color:var(--text)">${padId(prof.id||0)}</b></div>
-        </div>
-      </div>
-    </div>
-    <div class="balance-big">
-      <div><div class="muted small">Ваш баланс</div><div class="sum" id="pBal">${fmt(prof.balance)} ₽</div></div>
-      <button class="btn" onclick="openDeposit()">Пополнить баланс</button>
-    </div>
-    <div class="section-title">Мои лоты</div>
-    <div id="myLots"></div>
-    <div class="row" style="margin-top:24px"><button class="btn ghost small" onclick="doLogout()">Выйти из аккаунта</button></div>`;
-  updateHeader();
-  renderMyLots();
-}
 function renderMyLots(){
   const box = $('myLots'); if(!box) return;
-  if(!me){ box.innerHTML=''; return; }
-  const all = window._lots;
-  if(!all){ box.innerHTML = `<div class="locked-box">Загрузка…</div>`; return; }
-  const arr = all.filter(l=>l.ownerUid===me.uid);
-  box.innerHTML = arr.length ? arr.map(l=>`
-    <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
-      <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
-      <div class="lt">${esc(l.title)}</div>
-      <div class="lfoot">
-        <span class="price">${fmt(l.price)} ₽</span>
-        ${l.status==='sold'?'':`<button class="btn small ghost" onclick="event.stopPropagation();delLot('${l.id}')">Удалить</button>`}
-      </div>
+  if(!me){ box.innerHTML = `<div class="locked-box">Войдите, чтобы видеть свои лоты</div>`; return; }
+  const all = window._lots||[];
+  const mine = all.filter(l=>l.ownerUid===me.uid);
+  box.innerHTML = mine.length ? mine.map(l=>`
+    <div class="log-row">
+      <span class="tag game">${esc(l.game)}</span>
+      <span style="font-weight:700">${esc(l.title)}</span>
+      <span class="price">${fmt(l.price)} ₽</span>
+      ${l.status==='sold'? '<span class="tag sold">Продан</span>':''}
+      ${l.status!=='sold'? `<button class="btn small ghost" onclick="removeLot('${l.id}')">Удалить</button>`:''}
+      <a class="small" href="#lot?id=${l.id}">открыть</a>
     </div>`).join('')
-  : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый лот</a></div>`;
+  : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый</a></div>`;
 }
-async function delLot(id){
-  if(!confirm('Удалить лот?')) return;
+async function removeLot(id){
+  modal(`<h3>Удалить лот?</h3>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn danger" onclick="confirmRemoveLot('${id}')">Удалить</button>
+    </div>`);
+}
+async function confirmRemoveLot(id){
+  closeModal();
   await db.ref('lots/'+id).remove();
-  db.ref('lotChats/'+id).remove();
+  await db.ref('lotChats/'+id).remove();
+  log('Удалён лот', id);
   toast('Лот удалён');
 }
-async function saveName(){
-  if(!me) return;
-  const n = $('pName').value.trim();
-  if(n.length<2) return toast('Никнейм от 2 символов', true);
-  await db.ref('users/'+me.uid+'/name').set(n);
-  toast('Имя обновлено');
+function viewProfile(){
+  if(!me){ $('app').innerHTML = viewAuth(); return; }
+  if(!prof){ $('app').innerHTML = '<div class="locked-box">Загрузка профиля…</div>'; return; }
+  $('app').innerHTML = `
+    <div class="card">
+      <div class="profile-head">
+        <div class="avatar">${prof.photo?`<img src="${esc(prof.photo)}" alt="">`:esc((prof.name||'?')[0].toUpperCase())}</div>
+        <div>
+          <h2>${esc(prof.name)}${ownerTag(prof.name)}</h2>
+          <div class="muted small">ID на сайте: <b style="color:var(--text)">${padId(prof.id||0)}</b> · Email: ${esc(prof.email||'—')}</div>
+        </div>
+        <div class="row" style="margin-left:auto">
+          <button class="btn ghost small" onclick="editProfile()">Изменить профиль</button>
+          <button class="btn ghost small" onclick="doLogout()">Выйти</button>
+        </div>
+      </div>
+      <div class="balance-big">
+        <div>
+          <div class="muted small">Баланс на сайте</div>
+          <div class="sum">${fmt(prof.balance)} ₽</div>
+        </div>
+        <button class="btn" onclick="openDeposit()">Пополнить баланс</button>
+      </div>
+      <div class="muted small" style="margin-top:10px">Пополнение идёт через нашего ВК-бота: нажмите кнопку, и откроется чат с ботом, где вам дадут инструкцию.</div>
+    </div>
+    <div class="section-title">Мои лоты</div>
+    <div class="card" id="myLots"></div>`;
+  renderMyLots();
 }
-function uploadPhoto(input){
-  const f = input.files[0]; if(!f) return;
-  compressImg(f, 256, 0.8, data=>{
-    if(data.length > 300000) return toast('Фото слишком большое', true);
-    db.ref('users/'+me.uid+'/photo').set(data).then(()=>{ toast('Фото обновлено'); render(); });
-  });
+function editProfile(){
+  modal(`
+    <h3>Изменить профиль</h3>
+    <label>Никнейм</label><input id="edName" maxlength="24" value="${esc(prof.name)}">
+    <label>Ссылка на аватар (необязательно)</label><input id="edPhoto" placeholder="https://... прямая ссылка на картинку" value="${esc(prof.photo||'')}">
+    <div class="err" id="edErr"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn" onclick="saveProfile()">Сохранить</button>
+    </div>`);
+}
+async function saveProfile(){
+  const name = $('edName').value.trim();
+  const photo = $('edPhoto').value.trim() || null;
+  if(name.length<2) return $('edErr').textContent='Никнейм — минимум 2 символа';
+  try{
+    const updates = {name, photo};
+    await db.ref('users/'+me.uid).update(updates);
+    if(prof.role==='owner') await db.ref('lots').orderByChild('ownerUid').equalTo(me.uid).once('value').then(s=>{
+      s.forEach(l=>db.ref('lots/'+l.key+'/ownerName').set(name));
+    });
+    closeModal();
+    toast('Профиль обновлён');
+  }catch(e){ $('edErr').textContent = e.message; }
 }
 
 /* ===================== АДМИН-ПАНЕЛЬ ===================== */
 let admTab = 'overview';
 function viewAdmin(){
-  if(!me) return $('app').innerHTML = viewAuth();
-  if(!prof) return $('app').innerHTML = '<div class="locked-box">Загрузка профиля…</div>';
-  if(!isOwnerAdmin()) return $('app').innerHTML = '<div class="card">⛔ Доступ только для владельца и администратора.</div>';
-  const tabs = [['overview','Обзор'],['users','Пользователи'],['credit','Начисление'],['log','Журнал действий']];
+  if(!me){ $('app').innerHTML = viewAuth(); return; }
+  if(!isOwnerAdmin()){ $('app').innerHTML = '<div class="card">Доступ только для администрации.</div>'; return; }
   $('app').innerHTML = `
     <h2>Админ-панель</h2>
-    <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${admTab===k?'active':''}" onclick="admTab='${k}';render()">${l}</button>`).join('')}</div>
-    <div id="admBody" style="margin-top:16px"></div>`;
-  ({overview:admOverview, users:admUsers, credit:admCredit, log:admLog}[admTab])();
+    <div class="tabs">
+      <button class="tab ${admTab==='overview'?'active':''}" onclick="admTab='overview';renderAdminData();render()">Обзор</button>
+      <button class="tab ${admTab==='deposits'?'active':''}" onclick="admTab='deposits';renderAdminData();render()">Начисление</button>
+      <button class="tab ${admTab==='lots'?'active':''}" onclick="admTab='lots';renderAdminData();render()">Лоты</button>
+      <button class="tab ${admTab==='users'?'active':''}" onclick="admTab='users';renderAdminData();render()">Пользователи</button>
+      <button class="tab ${admTab==='logs'?'active':''}" onclick="admTab='logs';renderAdminData();render()">Логи</button>
+    </div>
+    <div class="card" style="margin-top:16px" id="admBox">Загрузка…</div>`;
+  renderAdminData();
 }
-function renderAdmStats(){
-  const set = (id,val)=>{const e=$(id); if(e)e.textContent=val;};
+function renderAdminData(){
+  const box = $('admBox'); if(!box || !isOwnerAdmin()) return;
+  if(admTab==='overview') renderAdmStats(box);
+  else if(admTab==='deposits') renderAdmDeposit(box);
+  else if(admTab==='lots') renderAdmLots(box);
+  else if(admTab==='users') renderAdmUsers(box);
+  else renderAdmLogs(box);
+}
+function renderAdmStats(box){
   const all = window._lots||[];
-  let sold=0;
-  all.forEach(l=>{ if(l.status==='sold') sold++; });
-  set('cLots', all.length);
-  set('cSold', sold);
-  set('cActive', all.length - sold);
+  const sold = all.filter(l=>l.status==='sold');
+  const revenue = sold.reduce((s,l)=>s+Number(l.price||0),0);
+  box.innerHTML = `
+    <h3 style="margin-bottom:14px">Обзор</h3>
+    <div class="stat-grid">
+      <div class="stat"><div class="n">${all.length}</div><div class="l">Всего лотов</div></div>
+      <div class="stat"><div class="n">${all.filter(l=>l.status!=='sold').length}</div><div class="l">Активных лотов</div></div>
+      <div class="stat"><div class="n">${sold.length}</div><div class="l">Продано</div></div>
+      <div class="stat"><div class="n">${fmt(revenue)} ₽</div><div class="l">Оборот продаж</div></div>
+    </div>
+    <div class="notice" style="margin-top:16px">Начисления балансу — на вкладке «Начисление» по 9-значному ID пользователя. Минимум пополнения на сайте: ${MIN_DEPOSIT} ₽.</div>`;
 }
-function admOverview(){
-  const b = $('admBody');
-  b.innerHTML = `<div class="stat-grid">
-    <div class="stat"><div class="n" id="cUsers">…</div><div class="l">Пользователей</div></div>
-    <div class="stat"><div class="n" id="cLots">…</div><div class="l">Лотов</div></div>
-    <div class="stat"><div class="n" id="cSold">…</div><div class="l">Продано лотов</div></div>
-    <div class="stat"><div class="n" id="cActive">…</div><div class="l">Активных лотов</div></div>
-  </div>`;
-  renderAdmStats();
-  db.ref('users').limitToLast(1).on('value', s=>{ const e=$('cUsers'); if(e) e.textContent = s.numChildren(); });
+function renderAdmDeposit(box){
+  box.innerHTML = `
+    <h3>Начисление баланса по ID</h3>
+    <p class="muted small">Введите 9-значный ID пользователя с сайта (вида 000000002) и сумму зачисления.</p>
+    <div class="row" style="margin-top:10px">
+      <input id="depId" placeholder="000000002" style="max-width:220px" oninput="this.value=this.value.replace(/[^\\d]/g,'')">
+      <input id="depAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
+      <button class="btn" onclick="adminDeposit()">Начислить</button>
+    </div>
+    <div class="err" id="depErr"></div>
+    <div id="depRes"></div>`;
 }
-function admUsers(){
-  const b = $('admBody'); const iAmOwner = prof.role==='owner';
-  b.innerHTML = `<p class="muted small">${iAmOwner?'Выберите роль для пользователя. Владелец назначает хелперов и администраторов.':'Менять роли может только владелец.'}</p>
-    <div class="table-wrap"><table class="tbl"><thead><tr><th>ID</th><th>Пользователь</th><th>Email</th><th>Баланс</th><th>Роль</th></tr></thead><tbody id="uRows"></tbody></table></div>`;
-  db.ref('users').on('value', snap=>{
-    const rows = $('uRows'); if(!rows) return;
-    const arr=[]; snap.forEach(u=>arr.push({id:u.key,...(u.val()||{})}));
+async function adminDeposit(){
+  const idNum = Number($('depId').value);
+  const amount = Number($('depAmount').value);
+  const err = $('depErr'); const res = $('depRes');
+  err.textContent=''; res.innerHTML='';
+  if(!idNum) return err.textContent='Введите ID пользователя';
+  if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
+  const s = await db.ref('users').get();
+  let target=null, targetUid=null;
+  if(s && s.forEach) s.forEach(u=>{ if((u.val()||{}).id===idNum){ target=u.val(); targetUid=u.key; } });
+  if(!target) return err.textContent='Пользователь с таким ID не найден';
+  await db.ref('users/'+targetUid+'/balance').transaction(b=>(b||0)+amount);
+  await pushNotif(targetUid, `Администрация зачислила вам ${fmt(amount)} ₽ на баланс`);
+  log('Начисление', `${fmt(amount)} ₽ пользователю ${target.name} (ID ${padId(idNum)})`);
+  res.innerHTML = `<div class="notice">Зачислено ${fmt(amount)} ₽ пользователю <b>${esc(target.name)}</b> (ID ${padId(idNum)}).</div>`;
+  $('depAmount').value='';
+}
+function renderAdmLots(box){
+  const all = window._lots||[];
+  box.innerHTML = `
+    <h3>Все лоты</h3>
+    <div class="table-wrap"><table class="tbl">
+      <tr><th>Лот</th><th>Игра</th><th>Цена</th><th>Продавец</th><th>Статус</th><th></th></tr>
+      ${all.map(l=>`
+        <tr>
+          <td><a href="#lot?id=${l.id}">${esc(l.title)}</a></td>
+          <td>${esc(l.game)}</td>
+          <td>${fmt(l.price)} ₽</td>
+          <td>${esc(l.ownerName||'')}</td>
+          <td>${l.status==='sold'?'<span class="tag sold">Продан</span>':'<span class="tag">Активен</span>'}</td>
+          <td><button class="btn small danger" onclick="admRemoveLot('${l.id}')">Удалить</button></td>
+        </tr>`).join('') || '<tr><td colspan="6" class="muted">Лотов нет</td></tr>'}
+    </table></div>`;
+}
+async function admRemoveLot(id){
+  modal(`<h3>Удалить лот?</h3>
+    <div class="row" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn danger" onclick="confirmAdmRemoveLot('${id}')">Удалить</button>
+    </div>`);
+}
+async function confirmAdmRemoveLot(id){
+  closeModal();
+  await db.ref('lots/'+id).remove();
+  await db.ref('lotChats/'+id).remove();
+  log('Удалён лот (админ)', id);
+  toast('Лот удалён');
+}
+function renderAdmUsers(box){
+  db.ref('users').once('value').then(s=>{
+    const arr=[]; if(s && s.forEach) s.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
     arr.sort((a,b)=>(a.id||0)-(b.id||0));
-    rows.innerHTML = arr.map(u=>`
-      <tr>
-        <td class="muted small">${padId(u.id)}</td>
-        <td><div class="row" style="gap:8px">
-          <div class="avatar" style="width:30px;height:30px;font-size:12px">${u.photo?`<img src="${u.photo}">`:esc((u.name||'?')[0].toUpperCase())}</div>
-          <b>${esc(u.name||'?')}</b>${ownerTag(u.name)}${u.verified?'<span class="verified">✓</span>':''}</div></td>
-        <td class="muted">${esc(u.email||'')}</td>
-        <td>${fmt(u.balance)} ₽</td>
-        <td>${isOwnerNick(u.name) ? '—' : (iAmOwner ? `
-          <select onchange="setRole('${u.id}',this.value)" style="max-width:170px">
-            <option value="user" ${u.role==='user'?'selected':''}>Пользователь</option>
-            <option value="helper" ${u.role==='helper'?'selected':''}>Хелпер</option>
-            <option value="admin" ${u.role==='admin'?'selected':''}>Администратор</option>
-          </select>` : `<span class="tag">${({helper:'Хелпер',admin:'Администратор'})[u.role]||'Пользователь'}</span>`)}</td>
-      </tr>`).join('');
+    box.innerHTML = `
+      <h3>Пользователи</h3>
+      <div class="table-wrap"><table class="tbl">
+        <tr><th>ID</th><th>Никнейм</th><th>Email</th><th>Баланс</th><th>Роль</th><th></th></tr>
+        ${arr.map(u=>`
+          <tr>
+            <td>${padId(u.id||0)}</td>
+            <td>${esc(u.name||'')}${ownerTag(u.name)}</td>
+            <td class="muted">${esc(u.email||'')}</td>
+            <td>${fmt(u.balance)} ₽</td>
+            <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
+            <td>${u.role==='owner'? '' :
+              u.role==='admin'
+                ? `<button class="btn small ghost" onclick="setRole('${u.uid}','user')">Снять админа</button>`
+                : `<button class="btn small ghost" onclick="setRole('${u.uid}','admin')">Сделать админом</button>`}
+            </td>
+          </tr>`).join('')}
+      </table></div>`;
   });
 }
 async function setRole(uid, role){
-  if(prof.role!=='owner') return;
-  if(uid===me.uid) return toast('Свою роль менять нельзя', true);
   await db.ref('users/'+uid+'/role').set(role);
-  const usnap = await db.ref('users/'+uid).get();
-  log('Смена роли', `${(usnap&&usnap.val?usnap.val():{}).name||uid} → ${({helper:'Хелпер',admin:'Администратор',user:'Пользователь'})[role]}`);
+  log('Смена роли', `${uid} → ${role}`);
   toast('Роль обновлена');
+  renderAdminData();
 }
-function admCredit(){
-  const b = $('admBody');
-  b.innerHTML = `<p class="muted small">Зачислите баланс пользователю по его ID — после того, как он переведёт деньги во ВКонтакте. Минимум ${MIN_DEPOSIT} ₽, комиссия не взимается.</p>
-    <div class="card" style="max-width:460px;margin-top:14px">
-      <label>ID пользователя (9 цифр или просто число)</label><input id="crId" placeholder="000000001">
-      <label>Сумма, ₽</label><input id="crAmount" type="number" min="${MIN_DEPOSIT}" placeholder="25">
-      <div class="err" id="crErr"></div>
-      <button class="btn wide" style="margin-top:12px" onclick="creditByForm()">Зачислить на баланс</button>
-    </div>`;
-}
-async function creditByForm(){
-  const raw = $('crId').value.trim().replace(/\D/g,'');
-  const amt = parseInt($('crAmount').value);
-  if(!raw) return $('crErr').textContent='Укажите ID пользователя';
-  if(!amt || amt<MIN_DEPOSIT) return $('crErr').textContent=`Минимум ${MIN_DEPOSIT} ₽`;
-  const num = parseInt(raw);
-  const snap = await db.ref('users').get();
-  let uid=null, uname='';
-  snap.forEach(u=>{ if(((u.val()||{}).id||0)===num){ uid=u.key; uname=u.val().name||'?'; } });
-  if(!uid) return $('crErr').textContent='Пользователь с таким ID не найден';
-  await credit(uid, amt, uname);
-  $('crId').value=''; $('crAmount').value='';
-}
-async function credit(uid, amount, uname){
-  const ref = db.ref('users/'+uid+'/balance');
-  const res = await ref.transaction(b => (b||0) + amount);
-  if(!res.committed) return toast('Ошибка зачисления', true);
-  log('Зачисление баланса', `${uname||uid} +${fmt(amount)} ₽`);
-  toast(`Зачислено ${fmt(amount)} ₽ пользователю ${uname||uid}`);
-}
-function admLog(){
-  const b = $('admBody');
-  b.innerHTML = `<p class="muted small">Каждое действие администраторов: зачисления, смены ролей, покупки.</p>
-    <div id="logList" class="card" style="margin-top:12px;padding:6px 4px"></div>`;
-  db.ref('logs').limitToLast(300).on('value', snap=>{
-    const box = $('logList'); if(!box) return;
-    const arr=[]; snap.forEach(l=>arr.push(l.val()));
+function renderAdmLogs(box){
+  db.ref('logs').limitToLast(80).once('value').then(s=>{
+    const arr=[]; if(s && s.forEach) s.forEach(l=>arr.push(l.val()));
     arr.reverse();
-    box.innerHTML = arr.length ? arr.map(l=>`
-      <div class="log-row">
-        <span class="muted small" style="min-width:110px">${timeStr(l.ts)}</span>
-        <span class="who">${esc(l.actorName)}${l.role!=='user'?` <span class="tag">${({owner:'Владелец',admin:'Админ',helper:'Хелпер'})[l.role]||''}</span>`:''}</span>
-        <span><b>${esc(l.action)}</b> ${esc(l.details||'')}</span>
-      </div>`).join('')
-    : `<div class="locked-box">Пока нет записей</div>`;
+    box.innerHTML = `
+      <h3>Логи действий</h3>
+      ${arr.map(r=>`
+        <div class="log-row">
+          <span class="who">${esc(r.actorName||'?')}</span>
+          <span><b>${esc(r.action)}</b>${r.details? ' — '+esc(r.details):''}</span>
+          <span class="muted small" style="margin-left:auto">${timeStr(r.ts)}</span>
+        </div>`).join('') || '<div class="locked-box">Логов пока нет</div>'}`;
   });
 }
 
-/* ===================== СТАРТ ===================== */
-function refreshProfileViews(){
-  if(!prof) return;
-  const path=(location.hash.slice(1)||'home').split('?')[0];
-  if(path==='profile'){
-    const b=$('pBal'); if(b) b.textContent=fmt(prof.balance)+' ₽';
-    const ava=$('profAva'); if(ava) ava.innerHTML = prof.photo?`<img src="${prof.photo}" alt="">`:esc((prof.name||'?')[0].toUpperCase());
-    renderMyLots();
-  } else if(path==='home'){
-    render();
-  }
-}
-auth.onAuthStateChanged(user=>{
-  me = user;
-  if(profRef) profRef.off();
-  prof = null;
-  if(user){
-    profRef = db.ref('users/'+user.uid);
-    profRef.on('value', s=>{
-      prof = s && typeof s.val==='function' ? s.val() : null;
-      if(!prof){
-        db.ref('users/'+user.uid).update({name:user.email.split('@')[0], email:user.email, role:'user', balance:0, photo:null, createdAt:Date.now()});
-        return;
-      }
-      if(!prof.id){
-        assignUserId(prof.name||'').then(id=>{
-          db.ref('users/'+user.uid+'/id').set(id);
-          if(prof) prof.id = id;
-          updateHeader(); refreshProfileViews();
-        });
-      }
-      if(isOwnerNick(prof.name) && (prof.role!=='owner' || !prof.verified)){
-        db.ref('users/'+user.uid).update({role:'owner', verified:true});
-      }
-      updateHeader();
-      refreshProfileViews();
-    });
-  } else updateHeader();
-  watchBell();
-  render();
-});
-$('burgerBtn').onclick = ()=>$('mobileNav').classList.toggle('open');
-$('loginBtn').onclick = (e)=>{e.preventDefault(); location.hash='profile';};
-$('balanceChip').onclick = ()=>location.hash='profile';
-$('bellBtn').onclick = openNotifications;
+/* Старт */
+if(!location.hash) location.hash='home';
 render();
 </script>
 </body>
