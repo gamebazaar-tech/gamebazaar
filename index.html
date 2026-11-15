@@ -82,6 +82,10 @@ nav.main-nav a.active{color:var(--text);background:var(--card2)}
 .chip{padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;transition:all .2s}
 .chip:hover{color:var(--text)}
 .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tab{padding:9px 18px;border-radius:10px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:14px;transition:all .2s}
+.tab:hover{color:var(--text);border-color:var(--accent)}
+.tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .lots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .lot-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:transform .15s,border-color .2s;display:flex;flex-direction:column;gap:10px}
 .lot-card:hover{transform:translateY(-3px);border-color:var(--accent)}
@@ -196,7 +200,7 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
     <div class="foot-links">
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v2.6</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v2.7</div>
   </div>
 </footer>
 
@@ -206,10 +210,8 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v2.6: добавлены проверки «профиль ещё не загрузился» — во время
-   обновления страницы вход восстанавливается раньше данных профиля,
-   и код раньше падал на prof.role. Теперь в этом промежутке сайт
-   спокойно показывает загрузку, а не ошибку.
+   v2.7: добавлены стили вкладок админ-панели (.tabs/.tab), счётчик
+   «Лотов» в обзоре больше не висит на «…».
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -392,9 +394,7 @@ function render(){
 }
 window.addEventListener('hashchange', render);
 
-/* ===================== ГЛОБАЛЬНЫЙ СПИСОК ЛОТОВ =====================
-   Единственный слушатель лотов в приложении. Каталог, профиль и
-   страница лота читают из window._lots. */
+/* ===================== ГЛОБАЛЬНЫЙ СПИСОК ЛОТОВ ===================== */
 let catGame='', catCat='';
 db.ref('lots').on('value', snap=>{
   try{
@@ -405,6 +405,7 @@ db.ref('lots').on('value', snap=>{
     renderMyLots();
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='lot' && curLotId) renderLotPage();
+    if(path==='admin' && admTab==='overview') renderAdmStats();
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
 });
 
@@ -499,8 +500,7 @@ function renderLots(){
   : `<div class="locked-box" style="grid-column:1/-1">Лотов пока нет${me?' — станьте первым продавцом: <a href="#sell">выставить лот</a>':''}</div>`;
 }
 
-/* ===================== ЛОТ =====================
-   Рисуется из window._lots — без собственного слушателя. */
+/* ===================== ЛОТ ===================== */
 let curLotId = null, lotChatUnsub = null, curChatLotId = null;
 const chatCache = {};
 function detachLotChat(){
@@ -583,7 +583,7 @@ function attachLotChat(lotId, lot){
     lotChatUnsub = db.ref('lotChats/'+lotId).on('value', snap=>{
       if(curChatLotId !== lotId) return;
       try{
-        if(!snap || typeof snap.val !== 'function') return; // пустое событие — игнорируем
+        if(!snap || typeof snap.val !== 'function') return;
         chatCache[lotId] = snap.val()||{};
         drawChat(lotId, lot);
       }catch(e){ toast('Ошибка чата лота: '+e.message, true); }
@@ -787,25 +787,29 @@ function viewAdmin(){
   const tabs = [['overview','Обзор'],['users','Пользователи'],['credit','Начисление'],['log','Журнал действий']];
   $('app').innerHTML = `
     <h2>Админ-панель</h2>
-    <div class="tabs" style="margin-top:14px">${tabs.map(([k,l])=>`<button class="tab ${admTab===k?'active':''}" onclick="admTab='${k}';render()">${l}</button>`).join('')}</div>
-    <div id="admBody"></div>`;
+    <div class="tabs">${tabs.map(([k,l])=>`<button class="tab ${admTab===k?'active':''}" onclick="admTab='${k}';render()">${l}</button>`).join('')}</div>
+    <div id="admBody" style="margin-top:16px"></div>`;
   ({overview:admOverview, users:admUsers, credit:admCredit, log:admLog}[admTab])();
+}
+function renderAdmStats(){
+  const set = (id,val)=>{const e=$(id); if(e)e.textContent=val;};
+  const all = window._lots||[];
+  let sold=0;
+  all.forEach(l=>{ if(l.status==='sold') sold++; });
+  set('cLots', all.length);
+  set('cSold', sold);
+  set('cActive', all.length - sold);
 }
 function admOverview(){
   const b = $('admBody');
-  const set = (id,val)=>{const e=$(id); if(e)e.textContent=val;};
   b.innerHTML = `<div class="stat-grid">
     <div class="stat"><div class="n" id="cUsers">…</div><div class="l">Пользователей</div></div>
     <div class="stat"><div class="n" id="cLots">…</div><div class="l">Лотов</div></div>
     <div class="stat"><div class="n" id="cSold">…</div><div class="l">Продано лотов</div></div>
     <div class="stat"><div class="n" id="cActive">…</div><div class="l">Активных лотов</div></div>
   </div>`;
-  db.ref('users').on('value', s=>set('cUsers',s.numChildren()));
-  db.ref('lots').on('value', s=>{
-    let sold=0, active=0;
-    s.forEach(l=>{ if(l.val().status==='sold') sold++; else active++; });
-    set('cSold',sold); set('cActive',active);
-  });
+  renderAdmStats();
+  db.ref('users').limitToLast(1).on('value', s=>{ const e=$('cUsers'); if(e) e.textContent = s.numChildren(); });
 }
 function admUsers(){
   const b = $('admBody'); const iAmOwner = prof.role==='owner';
