@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0f0e17">
-<title>GameBazaar — маркетплейс игровых ценностей</title>
+<title>Pay Play — маркетплейс игровых ценностей</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -196,7 +196,7 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
     <div class="foot-links">
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
     </div>
-    <div class="muted small">© GameBazaar — маркетплейс игровых ценностей</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей</div>
   </div>
 </footer>
 
@@ -205,10 +205,9 @@ footer{border-top:1px solid var(--border);background:var(--bg2);margin-top:auto}
 
 <script>
 /* =====================================================================
-   GameBazaar — единый файл сайта (GitHub Pages + Firebase)
-   v2.0: поддержка удалена, пополнение через ВК по ID, система ID,
-   картинки категорий и лотов, баннер Pay Play, бейдж владельца,
-   уведомления о покупках и ответах в чате лота.
+   Pay Play — единый файл сайта (GitHub Pages + Firebase)
+   v2.2: лоты грузятся одним глобальным слушателем (каталог и «Мои
+   лоты» всегда актуальны), логотип Pay Play, пополнение через ВК по ID.
    ===================================================================== */
 
 const FIREBASE_CONFIG = {
@@ -269,7 +268,7 @@ function viewAuth(mode){
   return `
   <div class="auth-card card">
     <h2 style="margin-bottom:6px">${reg?'Регистрация':'Вход'}</h2>
-    <p class="muted small">${reg?'Создайте аккаунт GameBazaar':'Войдите в свой аккаунт'}</p>
+    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунт'}</p>
     <div class="auth-tabs">
       <button class="${reg?'':'active'}" onclick="authMode='login';render()">Вход</button>
       <button class="${reg?'active':''}" onclick="authMode='reg';render()">Регистрация</button>
@@ -285,7 +284,7 @@ function viewAuth(mode){
    ID 000000001 закреплён за ником владельца. */
 async function assignUserId(name){
   if(isOwnerNick(name)){
-    const s = await db.ref('users').orderByChild('id').limitToFirst(1).get();
+    const s = await db.ref('users').get();
     let taken=false; s.forEach(u=>{ if(u.val().id===1) taken=true; });
     if(!taken) return 1;
   }
@@ -306,7 +305,7 @@ async function doRegister(){
       name, email, role: isOwner?'owner':'user', verified: isOwner,
       id: uid, balance:0, photo:null, createdAt:Date.now()
     });
-    toast('Добро пожаловать в GameBazaar! Ваш ID: '+padId(uid));
+    toast('Добро пожаловать в Pay Play! Ваш ID: '+padId(uid));
     location.hash='home';
   }catch(e){ $('authErr').textContent = e.message.replace('Firebase: ',''); }
 }
@@ -378,6 +377,8 @@ function log(action, details){
 function render(){
   const h = location.hash.slice(1)||'home';
   const [path] = h.split('?');
+  if(path!=='lot' && lotUnsub){ lotUnsub(); lotUnsub=null; }
+  if(path!=='lot' && lotChatUnsub){ lotChatUnsub(); lotChatUnsub=null; }
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
   const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin};
@@ -385,6 +386,18 @@ function render(){
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange', render);
+
+/* ===================== ГЛОБАЛЬНЫЙ СПИСОК ЛОТОВ =====================
+   Один слушатель на всё приложение: каталог, страница лота и «Мои лоты»
+   читают из window._lots и перерисовываются при каждом обновлении базы. */
+let catGame='', catCat='';
+db.ref('lots').on('value', snap=>{
+  const arr=[]; snap.forEach(l=>arr.push({id:l.key, ...l.val()}));
+  arr.sort((a,b)=>b.createdAt-a.createdAt);
+  window._lots = arr;
+  renderLots();
+  renderMyLots();
+});
 
 /* ===================== ГЛАВНАЯ ===================== */
 function viewHome(){
@@ -441,35 +454,31 @@ function openDeposit(){
 }
 
 /* ===================== КАТАЛОГ ===================== */
-let catGame = '', catCat = '';
-let lotsUnsub = null;
 function viewCatalog(){
   catGame = new URLSearchParams((location.hash.split('?')[1]||'')).get('game')||'';
-  const app = $('app');
-  app.innerHTML = `
+  $('app').innerHTML = `
     <h2>Каталог</h2>
     <div class="filters" id="fGames"></div>
     <div class="filters" id="fCats"></div>
     <div class="lots-grid" id="lotsGrid"></div>`;
   renderFilters();
-  if(lotsUnsub) lotsUnsub();
-  lotsUnsub = db.ref('lots').on('value', snap=>{
-    const arr=[]; snap.forEach(l=>arr.push({id:l.key, ...l.val()}));
-    window._lots = arr.reverse();
-    renderLots();
-  });
+  renderLots();
 }
 function renderFilters(){
-  $('fGames').innerHTML = `<button class="chip ${!catGame?'active':''}" onclick="setF('game','')">Все игры</button>` +
+  const gf = $('fGames'); if(!gf) return;
+  gf.innerHTML = `<button class="chip ${!catGame?'active':''}" onclick="setF('game','')">Все игры</button>` +
     GAMES.map(g=>`<button class="chip ${catGame===g?'active':''}" onclick="setF('game','${g}')">${g}</button>`).join('');
-  $('fCats').innerHTML = `<button class="chip ${!catCat?'active':''}" onclick="setF('cat','')">Все категории</button>` +
+  const cf = $('fCats'); if(!cf) return;
+  cf.innerHTML = `<button class="chip ${!catCat?'active':''}" onclick="setF('cat','')">Все категории</button>` +
     CATEGORIES.map(c=>`<button class="chip ${catCat===c?'active':''}" onclick="setF('cat','${c}')">${c}</button>`).join('');
 }
 function setF(k,v){ if(k==='game')catGame=v; else catCat=v; renderFilters(); renderLots(); }
 function lotImgSrc(l){ return esc(l.img || GAME_IMG[l.game] || ''); }
 function renderLots(){
   const g = $('lotsGrid'); if(!g) return;
-  const list = (window._lots||[]).filter(l=>(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
+  const all = window._lots;
+  if(!all){ g.innerHTML = `<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>`; return; }
+  const list = all.filter(l=>(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       ${lotImgSrc(l)?`<img class="lot-thumb" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
@@ -482,11 +491,11 @@ function renderLots(){
 }
 
 /* ===================== ЛОТ ===================== */
-let lotUnsub = null;
+let lotUnsub = null, lotChatUnsub = null;
 function viewLot(){
   const id = new URLSearchParams(location.hash.split('?')[1]||'').get('id');
   const app = $('app');
-  if(lotUnsub) lotUnsub();
+  app.innerHTML = '<div class="locked-box">Загрузка…</div>';
   lotUnsub = db.ref('lots/'+id).on('value', snap=>{
     const l = snap.val();
     if(!l){ app.innerHTML='<div class="card">Лот не найден или удалён.</div>'; return; }
@@ -544,7 +553,6 @@ async function confirmBuy(id){
 }
 
 /* ---------- Чат по лоту ---------- */
-let lotChatUnsub = null;
 function renderLotChat(lotId, lot){
   const box = $('lotChat');
   if(lotChatUnsub) lotChatUnsub();
@@ -689,21 +697,23 @@ function viewProfile(){
   updateHeader();
   renderMyLots();
 }
-let myLotsUnsub = null;
+/* «Мои лоты» рисуются из общего списка — без отдельного запроса к базе */
 function renderMyLots(){
-  if(myLotsUnsub) myLotsUnsub();
-  myLotsUnsub = db.ref('lots').orderByChild('ownerUid').equalTo(me.uid).on('value', snap=>{
-    const box = $('myLots'); if(!box) return;
-    const arr=[]; snap.forEach(l=>arr.push({id:l.key,...l.val()}));
-    arr.sort((a,b)=>b.createdAt-a.createdAt);
-    box.innerHTML = arr.length ? arr.map(l=>`
-      <div class="ticket-row">
-        <span class="tag game">${esc(l.game)}</span><span class="tt">${esc(l.title)}</span>
+  const box = $('myLots'); if(!box) return;
+  if(!me){ box.innerHTML=''; return; }
+  const all = window._lots;
+  if(!all){ box.innerHTML = `<div class="locked-box">Загрузка…</div>`; return; }
+  const arr = all.filter(l=>l.ownerUid===me.uid);
+  box.innerHTML = arr.length ? arr.map(l=>`
+    <div class="lot-card" style="cursor:default">
+      <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
+      <div class="lt">${esc(l.title)}</div>
+      <div class="lfoot">
         <span class="price">${fmt(l.price)} ₽</span>
-        ${l.status==='sold'?'<span class="tag sold">Продан</span>':`<button class="btn small ghost" onclick="delLot('${l.id}')">Удалить</button>`}
-      </div>`).join('')
-    : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый лот</a></div>`;
-  });
+        ${l.status==='sold'?'':`<button class="btn small ghost" onclick="delLot('${l.id}')">Удалить</button>`}
+      </div>
+    </div>`).join('')
+  : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый лот</a></div>`;
 }
 async function delLot(id){
   if(!confirm('Удалить лот?')) return;
@@ -802,9 +812,9 @@ async function creditByForm(){
   if(!raw) return $('crErr').textContent='Укажите ID пользователя';
   if(!amt || amt<MIN_DEPOSIT) return $('crErr').textContent=`Минимум ${MIN_DEPOSIT} ₽`;
   const num = parseInt(raw);
-  const snap = await db.ref('users').orderByChild('id').equalTo(num).get();
+  const snap = await db.ref('users').get();
   let uid=null, uname='';
-  snap.forEach(u=>{ uid=u.key; uname=u.val().name||'?'; });
+  snap.forEach(u=>{ if((u.val().id||0)===num){ uid=u.key; uname=u.val().name||'?'; } });
   if(!uid) return $('crErr').textContent='Пользователь с таким ID не найден';
   await credit(uid, amt, uname);
   $('crId').value=''; $('crAmount').value='';
