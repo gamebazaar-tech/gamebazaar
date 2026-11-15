@@ -245,7 +245,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.6 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.7 Space</div>
   </div>
 </footer>
 
@@ -255,8 +255,8 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.6: исправлен фильтр цифр в полях ID (съедался ввод),
-   живой кэш пользователей из v3.5 сохранён
+   v3.7: починены кнопка «Выйти», опечатки разметки, вычищен код.
+   Живой кэш пользователей и исправленный фильтр цифр сохранены.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -296,10 +296,9 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => Number(n||0).toLocaleString('ru-RU');
 const timeStr = ts => new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-/* ID — простое число: 1, 2, 3… */
 const padId = n => String(Number(n||0));
 const isOwnerNick = name => (name||'')===OWNER_NICK;
-const ownerTag = name => isOwnerNick(name) ? ` <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>` : '';
+const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>' : '';
 
 function toast(text, isErr){
   const t = document.createElement('div');
@@ -309,7 +308,7 @@ function toast(text, isErr){
   setTimeout(()=>t.remove(), 4200);
 }
 function modal(html){
-  $('modalRoot').innerHTML = `<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal">${html}</div></div>`;
+  $('modalRoot').innerHTML = '<div class="modal-back" onclick="if(event.target===this)closeModal()"><div class="modal">'+html+'</div></div>';
 }
 function closeModal(){ $('modalRoot').innerHTML=''; }
 function isOwnerAdmin(){ return prof && ['admin','owner'].includes(prof.role); }
@@ -322,7 +321,7 @@ function viewAuth(mode){
   return `
   <div class="auth-card card">
     <h2 style="margin-bottom:6px">${reg?'Регистрация':'Вход'}</h2>
-    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунt'}</p>
+    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунт'}</p>
     <div class="auth-tabs">
       <button class="${reg?'':'active'}" onclick="authMode='login';render()">Вход</button>
       <button class="${reg?'active':''}" onclick="authMode='reg';render()">Регистрация</button>
@@ -334,7 +333,6 @@ function viewAuth(mode){
     <button class="btn wide" style="margin-top:8px" onclick="${reg?'doRegister()':'doLogin()'}">${reg?'Создать аккаунт':'Войти'}</button>
   </div>`;
 }
-/* Система ID: простые числа по порядку. ID 1 закреплён за ником владельца. */
 async function assignUserId(name){
   if(isOwnerNick(name)){
     const s = await db.ref('users').get();
@@ -360,18 +358,17 @@ async function doRegister(){
     });
     toast('Добро пожаловать в Pay Play! Ваш ID: '+padId(uid));
     location.hash='home';
-  }catch(e){ $('authErr').textContent = e.message.replace('Firebase: ',''); }
+  }catch(e){ $('authErr').textContent = String(e.message||e).replace('Firebase: ',''); }
 }
 async function doLogin(){
   try{
     await auth.signInWithEmailAndPassword($('authEmail').value.trim(), $('authPass').value);
     toast('Вы вошли!');
     location.hash='home';
-  }catch(e){ $('authErr').textContent = e.message.replace('Firebase: ',''); }
+  }catch(e){ $('authErr').textContent = String(e.message||e).replace('Firebase: ',''); }
 }
 function doLogout(){ auth.signOut(); location.hash='home'; }
 
-/* Слушатель профиля (+ выдача ID тем, у кого его нет) */
 auth.onAuthStateChanged(user=>{
   me = user || null;
   if(profRef){ profRef.off(); profRef=null; }
@@ -421,7 +418,7 @@ function updateHeader(){
   if(nim) nim.style.display = logged?'':'none';
   if(logged && prof){
     $('balanceVal').textContent = fmt(prof.balance);
-    $('avatarBtn').innerHTML = prof.photo ? `<img src="${esc(prof.photo)}" alt="">` : esc((prof.name||'?')[0].toUpperCase());
+    $('avatarBtn').innerHTML = prof.photo ? '<img src="'+esc(prof.photo)+'" alt="">' : esc((prof.name||'?')[0].toUpperCase());
     $('avatarBtn').title = prof.name+' — профиль';
     const adm = isOwnerAdmin();
     $('navAdmin').style.display = adm?'':'none';
@@ -448,8 +445,8 @@ function openNotifications(){
   const items = [...notifs].reverse().map(n=>`
     <div class="notif-row ${n.read?'':'unread'}">${esc(n.text||'')}
       <div class="t">${timeStr(n.ts)}</div>
-    </div>`).join('') || `<div class="locked-box">Уведомлений пока нет</div>`;
-  modal(`<h3>Уведомления</h3>${items}
+    </div>`).join('') || '<div class="locked-box">Уведомлений пока нет</div>';
+  modal('<h3>Уведомления</h3>'+items+`
     <div class="row" style="justify-content:flex-end;margin-top:12px">
       <button class="btn ghost" onclick="closeModal()">Закрыть</button>
     </div>`);
@@ -483,7 +480,7 @@ function render(){
 }
 window.addEventListener('hashchange', render);
 
-/* ===================== ЖИВЫЕ КЭШИ: ЛОТЫ И ПОЛЬЗОВАТЕЛИ ===================== */
+/* ===================== ЖИВЫЕ КЭШИ ===================== */
 let catGame='', catCat='';
 db.ref('lots').on('value', snap=>{
   try{
@@ -523,8 +520,8 @@ function viewHome(){
           <div class="sum">${(me&&prof)?fmt(prof.balance)+' ₽':'—'}</div>
         </div>
         ${(me&&prof)
-          ? `<button class="btn" onclick="openDeposit()">Пополнить баланс</button>`
-          : `<a class="btn" href="#" onclick="location.hash='profile'">Войдите, чтобы пополнить</a>`}
+          ? '<button class="btn" onclick="openDeposit()">Пополнить баланс</button>'
+          : '<a class="btn" href="#" onclick="location.hash=\'profile\'">Войдите, чтобы пополнить</a>'}
       </div>
       ${(me&&prof)?`<div class="muted small" style="margin-top:8px">Ваш ID: <b style="color:var(--text)">${padId(prof.id||0)}</b> — называйте его при пополнении</div>`:''}
     </div>
@@ -547,7 +544,6 @@ function viewHome(){
     </div>`;
 }
 
-/* ===================== ПОПОЛНЕНИЕ — переход в ВК-бота ===================== */
 function openDeposit(){
   if(!(me && prof)) return toast('Сначала войдите на сайт', true);
   window.open(VK_BOT_LINK, '_blank');
@@ -560,17 +556,17 @@ function viewCatalog(){
   $('app').innerHTML = `
     <h2>Каталог</h2>
     <div class="filters" id="fGames"></div>
-    <divs></divs>
+    <div class="filters" id="fCats"></div>
     <div class="lots-grid" id="lotsGrid"></div>`;
   renderFilters();
   renderLots();
 }
 function renderFilters(){
   const gf = $('fGames'); if(!gf) return;
-  gf.innerHTML = `<button class="chip ${!catGame?'active':''}" onclick="setF('game','')">Все игры</button>` +
+  gf.innerHTML = '<button class="chip '+(!catGame?'active':'')+'" onclick="setF(\'game\',\'\')">Все игры</button>' +
     GAMES.map(g=>`<button class="chip ${catGame===g?'active':''}" onclick="setF('game','${g}')">${g}</button>`).join('');
   const cf = $('fCats'); if(!cf) return;
-  cf.innerHTML = `<button class="chip ${!catCat?'active':''}" onclick="setF('cat','')">Все категории</button>` +
+  cf.innerHTML = '<button class="chip '+(!catCat?'active':'')+'" onclick="setF(\'cat\',\'\')">Все категории</button>' +
     CATEGORIES.map(c=>`<button class="chip ${catCat===c?'active':''}" onclick="setF('cat','${c}')">${c}</button>`).join('');
 }
 function setF(k,v){ if(k==='game')catGame=v; else catCat=v; renderFilters(); renderLots(); }
@@ -578,7 +574,7 @@ function lotImgSrc(l){ return esc(l.img || GAME_IMG[l.game] || ''); }
 function renderLots(){
   const g = $('lotsGrid'); if(!g) return;
   const all = window._lots;
-  if(!all){ g.innerHTML = `<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>`; return; }
+  if(!all){ g.innerHTML = '<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>'; return; }
   const list = all.filter(l=>(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
@@ -588,7 +584,7 @@ function renderLots(){
       <div class="ld">${esc(l.desc)}</div>
       <div class="lfoot"><span class="price">${fmt(l.price)} ₽</span><span class="muted small">${esc(l.ownerName||'')}</span></div>
     </div>`).join('')
-  : `<div class="locked-box" style="grid-column:1/-1">Лотов пока нет${me?' — станьте первым продавцом: <a href="#sell">выставить лот</a>':''}</div>`;
+  : '<div class="locked-box" style="grid-column:1/-1">Лотов пока нет'+(me?' — станьте первым продавцом: <a href="#sell">выставить лот</a>':'')+'</div>';
 }
 
 /* ===================== ЛОТ ===================== */
@@ -631,13 +627,13 @@ function renderLotPage(){
         <span class="price" style="font-size:24px">${fmt(l.price)} ₽</span>
         <span class="muted small">Продавец: <b style="color:var(--text)">${esc(l.ownerName)}</b>${ownerTag(l.ownerName)}</span>
       </div>
-      ${mine? `<div class="notice">Это ваш лот. Управлять им можно в профиле.</div>` : `
+      ${mine? '<div class="notice">Это ваш лот. Управлять им можно в профиле.</div>' : `
         <div class="row">
-          ${sold? `<div class="locked-box" style="flex:1">Лот продан</div>`
-          : `<button class="btn" ${canBuy?'':'disabled'} onclick="buyLot('${id}')">Купить за ${fmt(l.price)} ₽</button>
-             ${me? `<button class="btn ghost" onclick="dmWriteSellerByLot('${id}')">✉️ Написать продавцу</button>
-                    ${!enough? `<span class="muted small">Пополните баланс, чтобы покупать</span>`:''}`
-                  : `<a class="btn ghost" href="#" onclick="location.hash='profile'">Войдите, чтобы купить</a>`}`}
+          ${sold? '<div class="locked-box" style="flex:1">Лот продан</div>'
+          : '<button class="btn" '+(canBuy?'':'disabled')+' onclick="buyLot(\''+id+'\')">Купить за '+fmt(l.price)+' ₽</button>'+
+             (me? '<button class="btn ghost" onclick="dmWriteSellerByLot(\''+id+'\')">✉️ Написать продавцу</button>'+
+                    (!enough? '<span class="muted small">Пополните баланс, чтобы покупать</span>':'')
+                  : '<a class="btn ghost" href="#" onclick="location.hash=\'profile\'">Войдите, чтобы купить</a>')}
         </div>`}
     </div>
     <div class="section-title">Чат с продавцом</div>
@@ -645,12 +641,11 @@ function renderLotPage(){
   if(me) attachLotChat(id, l);
 }
 function buyLot(id){
-  modal(`<h3>Подтверждение покупки</h3>
-    <p class="muted small">Сумма спишется с вашего баланса сразу после подтверждения.</p>
-    <div class="row" style="justify-content:flex-end;margin-top:16px">
-      <button class="btn ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn" onclick="confirmBuy('${id}')">Подтвердить</button>
-    </div>`);
+  modal('<h3>Подтверждение покупки</h3>'+
+    '<p class="muted small">Сумма спишется с вашего баланса сразу после подтверждения.</p>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:16px">'+
+    '<button class="btn ghost" onclick="closeModal()">Отмена</button>'+
+    '<button class="btn" onclick="confirmBuy(\''+id+'\')">Подтвердить</button></div>');
 }
 async function confirmBuy(id){
   closeModal();
@@ -664,13 +659,12 @@ async function confirmBuy(id){
   if(!res.committed) return toast('Ошибка списания', true);
   await db.ref('lots/'+id).update({status:'sold', buyerUid:me.uid, buyerName:prof.name||'?'});
   await db.ref('purchases').push({lotId:id, title:l.title, buyerUid:me.uid, sellerUid:l.ownerUid, price:Number(l.price), ts:Date.now()});
-  log('Покупка', `лот «${l.title}» за ${fmt(l.price)} ₽`);
-  await pushNotif(l.ownerUid, `${prof.name||'Покупатель'} купил ваш лот «${l.title}» за ${fmt(l.price)} ₽`);
+  log('Покупка', 'лот «'+l.title+'» за '+fmt(l.price)+' ₽');
+  await pushNotif(l.ownerUid, (prof.name||'Покупатель')+' купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   toast('Покупка успешна! Лот ваш 🎉');
   render();
 }
 
-/* ---------- Чат по лоту ---------- */
 function attachLotChat(lotId, lot){
   if(curChatLotId !== lotId){
     if(lotChatUnsub) lotChatUnsub();
@@ -696,7 +690,7 @@ function drawChat(lotId, lot){
   const canWrite = me && lot && !['sold'].includes(lot.status);
   const html = list.map(m=>{
     const mineMsg = me && m.fromUid===me.uid;
-    const ava = m.fromPhoto ? `<img src="${esc(m.fromPhoto)}" alt="">` : esc((m.fromName||'?')[0].toUpperCase());
+    const ava = m.fromPhoto ? '<img src="'+esc(m.fromPhoto)+'" alt="">' : esc((m.fromName||'?')[0].toUpperCase());
     return `
     <div class="msg ${mineMsg?'staff':''}">
       <div class="ava">${ava}</div>
@@ -705,15 +699,15 @@ function drawChat(lotId, lot){
         <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
-  }).join('') || `<div class="locked-box">Сообщений пока нет — напишите первым${lot?` про «${esc(lot.title)}»`:''}.</div>`;
-  box.innerHTML = `<div class="chat-wrap" id="chatList">${html}</div>
-    ${canWrite? `
+  }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым'+(lot?(' про «'+esc(lot.title)+'»'):'')+'.</div>';
+  box.innerHTML = '<div class="chat-wrap" id="chatList">'+html+'</div>'+
+    (canWrite? `
       <div class="row" style="margin-top:12px">
         <input id="chatInput" placeholder="Ваше сообщение…" maxlength="500"
                onkeydown="if(event.key==='Enter')sendChatMsg('${lotId}')">
         <button class="btn" onclick="sendChatMsg('${lotId}')">Отправить</button>
       </div>`
-    : `<div class="locked-box" style="margin-top:12px">${me? 'Чат закрыт — лот продан.' : 'Войдите, чтобы писать в чат.'}</div>`}`;
+    : '<div class="locked-box" style="margin-top:12px">'+(me? 'Чат закрыт — лот продан.' : 'Войдите, чтобы писать в чат.')+'</div>');
   const w = $('chatList'); if(w) w.scrollTop = w.scrollHeight;
 }
 async function sendChatMsg(lotId){
@@ -777,7 +771,7 @@ function viewInbox(){
         <div class="card" style="padding:14px">
           <label style="margin-top:0">Начать чат по ID сайта</label>
           <div class="row" style="flex-wrap:nowrap">
-            <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric">
             <button class="btn small" onclick="dmStartById()">Открыть</button>
           </div>
           <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… ${isOwnerAdmin()?'Вы админ: можете написать любому пользователю (все ID — в админ-панели, вкладка «Пользователи»).':'ID пользователя смотрите в его профиле или спросите у него.'}</div>
@@ -795,7 +789,7 @@ function renderDmList(){
     .map(([key,m])=>({key, ...m}))
     .sort((a,b)=>(b.lastTs||0)-(a.lastTs||0));
   if(!chats.length){
-    box.innerHTML = `<div class="locked-box" style="margin:14px">Диалогов пока нет.<br>Начните чат по ID пользователя или нажмите «✉️ Написать продавцу» на карточке лота.</div>`;
+    box.innerHTML = '<div class="locked-box" style="margin:14px">Диалогов пока нет.<br>Начните чат по ID пользователя или нажмите «✉️ Написать продавцу» на карточке лота.</div>';
     return;
   }
   box.innerHTML = chats.map(c=>{
@@ -805,7 +799,7 @@ function renderDmList(){
     const sel = c.key===dmOpenChatId ? ' sel':'';
     return `
     <div class="dm-item${sel}" onclick="openDmChat('${c.key}')">
-      <div class="dm-ava">${u.photo?`<img src="${esc(u.photo)}" alt="">`:esc((u.name||'?')[0].toUpperCase())}</div>
+      <div class="dm-ava">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
       <div class="dm-info">
         <div class="dm-name">${esc(u.name||'Пользователь')}${ownerTag(u.name)}</div>
         <div class="dm-preview">${esc(c.lastText||'Нет сообщений')}</div>
@@ -837,7 +831,7 @@ function openDmChat(key){
 }
 function drawDmChatPlaceholder(){
   const box = $('dmChatBox'); if(!box) return;
-  box.innerHTML = `<div class="locked-box" style="margin:70px 10px">Выберите диалог слева или начните новый по ID.</div>`;
+  box.innerHTML = '<div class="locked-box" style="margin:70px 10px">Выберите диалог слева или начните новый по ID.</div>';
 }
 function drawDmChat(){
   const box = $('dmChatBox'); if(!box) return;
@@ -848,7 +842,7 @@ function drawDmChat(){
   const u = (meta.users||{})[otherUid]||{};
   const html = dmMsgs.map(m=>{
     const mineMsg = m.fromUid===me.uid;
-    const ava = m.fromPhoto ? `<img src="${esc(m.fromPhoto)}" alt="">` : esc((m.fromName||'?')[0].toUpperCase());
+    const ava = m.fromPhoto ? '<img src="'+esc(m.fromPhoto)+'" alt="">' : esc((m.fromName||'?')[0].toUpperCase());
     return `
     <div class="msg ${mineMsg?'staff':''}">
       <div class="ava">${ava}</div>
@@ -857,11 +851,11 @@ function drawDmChat(){
         <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
       </div>
     </div>`;
-  }).join('') || `<div class="locked-box">Сообщений пока нет — напишите первым.</div>`;
+  }).join('') || '<div class="locked-box">Сообщений пока нет — напишите первым.</div>';
   box.innerHTML = `
     <div class="row" style="justify-content:space-between;margin-bottom:8px">
       <div class="row" style="gap:10px">
-        <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?`<img src="${esc(u.photo)}" alt="">`:esc((u.name||'?')[0].toUpperCase())}</div>
+        <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
         <b>${esc(u.name||'Пользователь')}${ownerTag(u.name)}</b>
         <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
       </div>
@@ -981,7 +975,7 @@ async function submitLot(){
       img: img||GAME_IMG[game]||null,
       ownerUid:me.uid, ownerName:prof? prof.name:'?', status:'active', createdAt:Date.now()
     });
-    log('Выставлен лот', `«${title}» за ${fmt(price)} ₽`);
+    log('Выставлен лот', '«'+title+'» за '+fmt(price)+' ₽');
     toast('Лот опубликован!');
     location.hash='profile';
   }catch(e){ $('sellErr').textContent = e.message; }
@@ -990,7 +984,7 @@ async function submitLot(){
 /* ===================== ПРОФИЛЬ ===================== */
 function renderMyLots(){
   const box = $('myLots'); if(!box) return;
-  if(!me){ box.innerHTML = `<div class="locked-box">Войдите, чтобы видеть свои лоты</div>`; return; }
+  if(!me){ box.innerHTML = '<div class="locked-box">Войдите, чтобы видеть свои лоты</div>'; return; }
   const all = window._lots||[];
   const mine = all.filter(l=>l.ownerUid===me.uid);
   box.innerHTML = mine.length ? mine.map(l=>`
@@ -999,17 +993,16 @@ function renderMyLots(){
       <span style="font-weight:700">${esc(l.title)}</span>
       <span class="price">${fmt(l.price)} ₽</span>
       ${l.status==='sold'? '<span class="tag sold">Продан</span>':''}
-      ${l.status!=='sold'? `<button class="btn small ghost" onclick="removeLot('${l.id}')">Удалить</button>`:''}
+      ${l.status!=='sold'? '<button class="btn small ghost" onclick="removeLot(\''+l.id+'\')">Удалить</button>':''}
       <a class="small" href="#lot?id=${l.id}">открыть</a>
     </div>`).join('')
-  : `<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый</a></div>`;
+  : '<div class="locked-box">У вас пока нет лотов. <a href="#sell">Выставить первый</a></div>';
 }
 async function removeLot(id){
-  modal(`<h3>Удалить лот?</h3>
-    <div class="row" style="justify-content:flex-end;margin-top:14px">
-      <button class="btn ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn danger" onclick="confirmRemoveLot('${id}')">Удалить</button>
-    </div>`);
+  modal('<h3>Удалить лот?</h3>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:14px">'+
+    '<button class="btn ghost" onclick="closeModal()">Отмена</button>'+
+    '<button class="btn danger" onclick="confirmRemoveLot(\''+id+'\')">Удалить</button></div>');
 }
 async function confirmRemoveLot(id){
   closeModal();
@@ -1024,14 +1017,14 @@ function viewProfile(){
   $('app').innerHTML = `
     <div class="card">
       <div class="profile-head">
-        <div class="avatar">${prof.photo?`<img src="${esc(prof.photo)}" alt="">`:esc((prof.name||'?')[0].toUpperCase())}</div>
+        <div class="avatar">${prof.photo?'<img src="'+esc(prof.photo)+'" alt="">':esc((prof.name||'?')[0].toUpperCase())}</div>
         <div>
           <h2>${esc(prof.name)}${ownerTag(prof.name)}</h2>
           <div class="muted small">ID на сайте: <b style="color:var(--text)">${padId(prof.id||0)}</b> · Email: ${esc(prof.email||'—')}</div>
         </div>
         <div class="row" style="margin-left:auto">
           <button class="btn ghost small" onclick="editProfile()">Изменить профиль</button>
-          <button class="btn ghost small" contextmenu="return false">Выйти</button>
+          <button class="btn ghost small" onclick="doLogout()">Выйти</button>
         </div>
       </div>
       <div class="balance-big">
@@ -1108,9 +1101,9 @@ function renderAdminData(){
   } else if(admTab==='deposits'){
     box.innerHTML = `
       <h3>Начисление баланса по ID</h3>
-      <p class="muted small">Введите ID пользователя (простое число: 1, 2, 3…) и сумму зачисления. Можно кликнуть по пользователю ниже — ID подставится сам.</p>
+      <p class="muted small">Введите ID пользователя и сумму зачисления. Можно кликнуть по пользователю ниже — ID подставится сам.</p>
       <div class="row" style="margin-top:10px">
-        <input id="depId" placeholder="Например: 2" style="max-width:220px" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        <input id="depId" placeholder="Например: 2" style="max-width:220px" inputmode="numeric">
         <input id="depAmount" type="number" min="1" placeholder="Сумма, ₽" style="max-width:160px">
         <button class="btn" onclick="adminDeposit()">Начислить</button>
       </div>
@@ -1122,7 +1115,7 @@ function renderAdminData(){
       </div>`;
     drawDepChips();
   } else if(admTab==='lots'){
-    box.innerHTML = `<h3>Все лоты</h3><div id="admLotsBox"><span class="muted small">Загрузка…</span></div>`;
+    box.innerHTML = '<h3>Все лоты</h3><div id="admLotsBox"><span class="muted small">Загрузка…</span></div>';
     drawAdmLots();
   } else if(admTab==='users'){
     box.innerHTML = `
@@ -1131,7 +1124,7 @@ function renderAdminData(){
       <div class="table-wrap" id="admUsersTbl"><span class="muted small">Загрузка…</span></div>`;
     drawAdmUsersTable();
   } else {
-    box.innerHTML = `<h3>Логи действий</h3><div id="admLogsBox"><span class="muted small">Загрузка…</span></div>`;
+    box.innerHTML = '<h3>Логи действий</h3><div id="admLogsBox"><span class="muted small">Загрузка…</span></div>';
     renderAdmLogs();
   }
 }
@@ -1159,10 +1152,10 @@ function drawAdmOverview(){
 function drawDepChips(){
   const box2 = $('depUsers'); if(!box2) return;
   const users = window._users;
-  if(!users){ box2.innerHTML = `<span class="muted small">Загрузка…</span>`; return; }
+  if(!users){ box2.innerHTML = '<span class="muted small">Загрузка…</span>'; return; }
   box2.innerHTML = users.length
     ? users.map(u=>`<span class="id-chip" onclick="pickDepId(${Number(u.id||0)})">ID ${padId(u.id||0)} · ${esc(u.name||'?')}</span>`).join(' ')
-    : `<span class="muted small">Пользователей пока нет</span>`;
+    : '<span class="muted small">Пользователей пока нет</span>';
 }
 function pickDepId(n){ const i=$('depId'); if(i) i.value = padId(n); }
 async function adminDeposit(){
@@ -1171,16 +1164,16 @@ async function adminDeposit(){
   const amount = Number($('depAmount').value);
   const err = $('depErr'); const res = $('depRes');
   err.textContent=''; res.innerHTML='';
-  if(!raw || !Number.isInteger(idNum) || idNum<=0) return err.textContent='ID — простое число, например 2';
+  if(!raw || !Number.isInteger(idNum) || idNum<=0) return err.textContent='ID — число, например 2';
   if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
   const s = await db.ref('users').get();
   let target=null, targetUid=null;
   if(s && s.forEach) s.forEach(u=>{ if(Number((u.val()||{}).id)===idNum){ target=u.val(); targetUid=u.key; } });
   if(!target) return err.textContent='Пользователь с таким ID не найден — проверьте список ниже';
   await db.ref('users/'+targetUid+'/balance').transaction(b=>(b||0)+amount);
-  await pushNotif(targetUid, `Администрация зачислила вам ${fmt(amount)} ₽ на баланс`);
-  log('Начисление', `${fmt(amount)} ₽ пользователю ${target.name} (ID ${padId(idNum)})`);
-  res.innerHTML = `<div class="notice">Зачислено ${fmt(amount)} ₽ пользователю <b>${esc(target.name)}</b> (ID ${padId(idNum)}).</div>`;
+  await pushNotif(targetUid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
+  log('Начисление', fmt(amount)+' ₽ пользователю '+target.name+' (ID '+padId(idNum)+')');
+  res.innerHTML = '<div class="notice">Зачислено '+fmt(amount)+' ₽ пользователю <b>'+esc(target.name)+'</b> (ID '+padId(idNum)+').</div>';
   $('depAmount').value='';
 }
 function drawAdmLots(){
@@ -1201,11 +1194,10 @@ function drawAdmLots(){
     </table></div>`;
 }
 async function admRemoveLot(id){
-  modal(`<h3>Удалить лот?</h3>
-    <div class="row" style="justify-content:flex-end;margin-top:14px">
-      <button class="btn ghost" onclick="closeModal()">Отмена</button>
-      <button class="btn danger" onclick="confirmAdmRemoveLot('${id}')">Удалить</button>
-    </div>`);
+  modal('<h3>Удалить лот?</h3>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:14px">'+
+    '<button class="btn ghost" onclick="closeModal()">Отмена</button>'+
+    '<button class="btn danger" onclick="confirmAdmRemoveLot(\''+id+'\')">Удалить</button></div>');
 }
 async function confirmAdmRemoveLot(id){
   closeModal();
@@ -1217,7 +1209,7 @@ async function confirmAdmRemoveLot(id){
 function drawAdmUsersTable(){
   const tbl = $('admUsersTbl'); if(!tbl) return;
   const users = window._users;
-  if(!users){ tbl.innerHTML = `<span class="muted small">Загрузка…</span>`; return; }
+  if(!users){ tbl.innerHTML = '<span class="muted small">Загрузка…</span>'; return; }
   tbl.innerHTML = `
     <table class="tbl">
       <tr><th>ID</th><th>Никнейм</th><th>Email</th><th>Баланс</th><th>Роль</th><th></th></tr>
@@ -1230,15 +1222,15 @@ function drawAdmUsersTable(){
           <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
           <td>${u.role==='owner'? '' :
             u.role==='admin'
-              ? `<button class="btn small ghost" onclick="setRole('${u.uid}','user')">Снять админа</button>`
-              : `<button class="btn small ghost" onclick="setRole('${u.uid}','admin')">Сделать админом</button>`}
+              ? '<button class="btn small ghost" onclick="setRole(\''+u.uid+'\',\'user\')">Снять админа</button>'
+              : '<button class="btn small ghost" onclick="setRole(\''+u.uid+'\',\'admin\')">Сделать админом</button>'}
           </td>
         </tr>`).join('') || '<tr><td colspan="6" class="muted">Пользователей пока нет</td></tr>'}
     </table>`;
 }
 async function setRole(uid, role){
   await db.ref('users/'+uid+'/role').set(role);
-  log('Смена роли', `${uid} → ${role}`);
+  log('Смена роли', uid+' → '+role);
   toast('Роль обновлена');
 }
 function renderAdmLogs(){
