@@ -85,7 +85,7 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .btn.small{padding:7px 14px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
 .btn.danger{background:linear-gradient(135deg,#ef4444,#991b1b);box-shadow:0 0 18px rgba(239,68,68,.35)}
-/* Вкладки админ-панели (восстановлено) */
+/* Вкладки админ-панели */
 .tabs{display:flex;gap:8px;flex-wrap:wrap}
 .tab{padding:10px 22px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:14px;transition:all .2s}
 .tab:hover{color:var(--text);border-color:var(--accent);box-shadow:var(--glow)}
@@ -169,6 +169,19 @@ table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:m
 .notif-row{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
 .notif-row.unread{background:rgba(76,48,145,.3);border-left:3px solid var(--accent);border-radius:6px}
 .notif-row .t{color:var(--muted);font-size:11px;margin-top:3px}
+/* Личные сообщения */
+.dm-wrap{display:grid;grid-template-columns:300px 1fr;gap:14px;align-items:start}
+.dm-item{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .2s}
+.dm-item:hover{background:var(--card2)}
+.dm-item.sel{background:linear-gradient(135deg,rgba(139,92,246,.18),rgba(109,63,214,.12));border-left:3px solid var(--accent)}
+.dm-ava{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,var(--accent),#d946ef);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;overflow:hidden}
+.dm-ava img{width:100%;height:100%;object-fit:cover}
+.dm-info{flex:1;min-width:0}
+.dm-name{font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.dm-preview{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.dm-right{text-align:right;flex-shrink:0}
+.dm-time{color:var(--muted);font-size:11px}
+.dm-badge{display:inline-flex;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-top:4px}
 #toasts{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(340px,90vw)}
 .toast{background:var(--card2);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;font-size:14px;box-shadow:var(--shadow),var(--glow);animation:tin .3s}
 .toast.err{border-color:var(--red);box-shadow:0 0 18px rgba(255,23,68,.35)}
@@ -188,6 +201,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
   table.tbl{font-size:13px}
   .profile-head{flex-direction:column;align-items:flex-start}
   main{padding:16px 12px 50px}
+  .dm-wrap{grid-template-columns:1fr}
 }
 @media (max-width:420px){
   .lots-grid{grid-template-columns:1fr}
@@ -203,12 +217,14 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="#home" data-nav="home">Главная</a>
       <a href="#catalog" data-nav="catalog">Каталог</a>
       <a href="#sell" data-nav="sell">Продать</a>
+      <a href="#inbox" data-nav="inbox" id="navInbox" style="display:none">Сообщения</a>
       <a href="#admin" data-nav="admin" id="navAdmin" style="display:none">Админ-панель</a>
     </nav>
     <div class="head-right">
       <div class="balance-chip" id="balanceChip" style="display:none" title="Ваш баланс" onclick="location.hash='profile'">
         <span>Баланс:</span><span id="balanceVal">0</span> ₽
       </div>
+      <button class="bell" id="dmBtn" style="display:none" title="Личные сообщения" onclick="location.hash='inbox'">📮<span class="dot" id="dmDot" style="display:none">0</span></button>
       <button class="bell" id="bellBtn" style="display:none" title="Уведомления" onclick="openNotifications()">🔔<span class="dot" id="bellDot" style="display:none">0</span></button>
       <div class="avatar" id="avatarBtn" style="display:none" onclick="location.hash='profile'"></div>
       <a class="btn small" href="#" id="loginBtn" style="display:none" onclick="location.hash='profile'">Войти</a>
@@ -219,6 +235,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
     <a href="#home" data-nav="home">Главная</a>
     <a href="#catalog" data-nav="catalog">Каталог</a>
     <a href="#sell" data-nav="sell">Продать</a>
+    <a href="#inbox" data-nav="inbox" id="navInboxM" style="display:none">Сообщения</a>
     <a href="#admin" data-nav="admin" id="navAdminM" style="display:none">Админ-панель</a>
   </div>
 </header>
@@ -231,7 +248,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.0 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v3.1 Space</div>
   </div>
 </footer>
 
@@ -241,7 +258,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v3.0: космическая тема + восстановлены вкладки админ-панели
+   v3.1: + личные сообщения между пользователями и администрацией
    «Пополнить баланс» ведёт в ВК-бот сообщества club243328738
    ===================================================================== */
 
@@ -381,9 +398,9 @@ auth.onAuthStateChanged(user=>{
       }
       updateHeader(); render();
     });
-    watchBell();
+    watchBell(); watchDm();
   } else {
-    watchBell(); updateHeader(); render();
+    watchBell(); watchDm(); updateHeader(); render();
   }
 });
 
@@ -392,8 +409,12 @@ function updateHeader(){
   const logged = !!me;
   $('balanceChip').style.display = logged ? 'flex':'none';
   $('bellBtn').style.display = logged ? 'block':'none';
+  $('dmBtn').style.display = logged ? 'block':'none';
   $('avatarBtn').style.display = logged ? 'flex':'none';
   $('loginBtn').style.display = logged ? 'none':'inline-flex';
+  const ni=$('navInbox'), nim=$('navInboxM');
+  if(ni) ni.style.display = logged?'':'none';
+  if(nim) nim.style.display = logged?'':'none';
   if(logged && prof){
     $('balanceVal').textContent = fmt(prof.balance);
     $('avatarBtn').innerHTML = prof.photo ? `<img src="${esc(prof.photo)}" alt="">` : esc((prof.name||'?')[0].toUpperCase());
@@ -449,9 +470,10 @@ function render(){
   const [path] = h.split('?');
   closeModal();
   if(path!=='lot') detachLotChat();
+  if(path!=='inbox') dmCloseChatListener();
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
-  const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin};
+  const views = {home:viewHome, catalog:viewCatalog, lot:viewLot, sell:viewSell, profile:viewProfile, admin:viewAdmin, inbox:viewInbox};
   (views[path]||viewHome)();
   window.scrollTo(0,0);
 }
@@ -599,7 +621,8 @@ function renderLotPage(){
         <div class="row">
           ${sold? `<div class="locked-box" style="flex:1">Лот продан</div>`
           : `<button class="btn" ${canBuy?'':'disabled'} onclick="buyLot('${id}')">Купить за ${fmt(l.price)} ₽</button>
-             ${me? (!enough? `<span class="muted small">Пополните баланс, чтобы покупать</span>`:'')
+             ${me? `<button class="btn ghost" onclick="dmWriteSellerByLot('${id}')">✉️ Написать продавцу</button>
+                    ${!enough? `<span class="muted small">Пополните баланс, чтобы покупать</span>`:''}`
                   : `<a class="btn ghost" href="#" onclick="location.hash='profile'">Войдите, чтобы купить</a>`}`}
         </div>`}
     </div>
@@ -689,6 +712,213 @@ async function sendChatMsg(lotId){
     fromPhoto: prof? (prof.photo||null):null,
     text, ts:Date.now()
   });
+}
+
+/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ ===================== */
+let dmChatsCache = null;   // мои чаты: key -> meta
+let dmOpenChatId = null;
+let dmChatUnsub = null;
+let dmMsgs = [];
+let dmWatchUnsub = null;
+
+const dmKeyFor = (a,b) => [String(a),String(b)].sort().join('__');
+
+function dmCloseChatListener(){
+  if(dmChatUnsub){ dmChatUnsub(); dmChatUnsub=null; }
+}
+function watchDm(){
+  if(dmWatchUnsub){ dmWatchUnsub(); dmWatchUnsub=null; }
+  if(!me){ dmChatsCache=null; updateDmDot(); return; }
+  dmWatchUnsub = db.ref('dmChats').on('value', snap=>{
+    try{
+      const out={};
+      if(snap && snap.forEach){
+        snap.forEach(c=>{
+          const v=c.val()||{};
+          if(v.participants && v.participants[me.uid]) out[c.key]=v;
+        });
+      }
+      dmChatsCache = out;
+      updateDmDot();
+      if((location.hash.slice(1)||'').split('?')[0]==='inbox') renderDmList();
+    }catch(e){ toast('Ошибка сообщений: '+e.message, true); }
+  });
+}
+function updateDmDot(){
+  const d = $('dmDot'); if(!d) return;
+  let n = 0;
+  if(me && dmChatsCache){
+    Object.values(dmChatsCache).forEach(m=>{ n += Number((m.unread||{})[me.uid]||0); });
+  }
+  d.style.display = n ? 'flex' : 'none';
+  d.textContent = n>99 ? '99+' : n;
+}
+function viewInbox(){
+  if(!me){ $('app').innerHTML = viewAuth(); return; }
+  $('app').innerHTML = `
+    <h2>Сообщения</h2>
+    <div class="dm-wrap" style="margin-top:14px">
+      <div>
+        <div class="card" style="padding:14px">
+          <label style="margin-top:0">Начать чат по ID сайта</label>
+          <div class="row" style="flex-wrap:nowrap">
+            <input id="dmNewId" placeholder="000000002" style="max-width:160px" oninput="this.value=this.value.replace(/[^\\d]/g,'')">
+            <button class="btn small" onclick="dmStartById()">Открыть</button>
+          </div>
+          ${isOwnerAdmin()?`<div class="muted small" style="margin-top:8px">Вы админ: можете написать любому пользователю по его ID (все ID — в админ-панели, вкладка «Пользователи»).</div>`:''}
+        </div>
+        <div class="card" style="padding:0;margin-top:12px;overflow:hidden" id="dmList"></div>
+      </div>
+      <div class="card" id="dmChatBox" style="min-height:360px"></div>
+    </div>`;
+  renderDmList();
+  if(dmOpenChatId) openDmChat(dmOpenChatId); else drawDmChatPlaceholder();
+}
+function renderDmList(){
+  const box = $('dmList'); if(!box || !me) return;
+  const chats = Object.entries(dmChatsCache||{})
+    .map(([key,m])=>({key, ...m}))
+    .sort((a,b)=>(b.lastTs||0)-(a.lastTs||0));
+  if(!chats.length){
+    box.innerHTML = `<div class="locked-box" style="margin:14px">Диалогов пока нет.<br>Начните чат по ID пользователя или нажмите «✉️ Написать продавцу» на карточке лота.</div>`;
+    return;
+  }
+  box.innerHTML = chats.map(c=>{
+    const otherUid = Object.keys(c.participants||{}).find(u=>u!==me.uid) || '?';
+    const u = (c.users||{})[otherUid]||{};
+    const unread = Number((c.unread||{})[me.uid]||0);
+    const sel = c.key===dmOpenChatId ? ' sel':'';
+    return `
+    <div class="dm-item${sel}" onclick="openDmChat('${c.key}')">
+      <div class="dm-ava">${u.photo?`<img src="${esc(u.photo)}" alt="">`:esc((u.name||'?')[0].toUpperCase())}</div>
+      <div class="dm-info">
+        <div class="dm-name">${esc(u.name||'Пользователь')}${ownerTag(u.name)}</div>
+        <div class="dm-preview">${esc(c.lastText||'Нет сообщений')}</div>
+      </div>
+      <div class="dm-right">
+        <div class="dm-time">${c.lastTs?timeStr(c.lastTs):''}</div>
+        ${unread?`<div class="dm-badge">${unread>99?'99+':unread}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function openDmChat(key){
+  if(!me || !key) return;
+  dmOpenChatId = key;
+  dmCloseChatListener();
+  dmMsgs = [];
+  drawDmChat();
+  dmChatUnsub = db.ref('dmMsgs/'+key).on('value', snap=>{
+    if(dmOpenChatId!==key) return;
+    try{
+      const arr=[];
+      if(snap && snap.forEach) snap.forEach(m=>arr.push({key:m.key, ...(m.val()||{})}));
+      arr.sort((a,b)=>(a.ts||0)-(b.ts||0));
+      dmMsgs = arr;
+      drawDmChat();
+      db.ref('dmChats/'+key+'/meta/unread/'+me.uid).set(0);
+    }catch(e){ toast('Ошибка чата: '+e.message, true); }
+  });
+}
+function drawDmChatPlaceholder(){
+  const box = $('dmChatBox'); if(!box) return;
+  box.innerHTML = `<div class="locked-box" style="margin:70px 10px">Выберите диалог слева или начните новый по ID.</div>`;
+}
+function drawDmChat(){
+  const box = $('dmChatBox'); if(!box) return;
+  const key = dmOpenChatId;
+  if(!key) return drawDmChatPlaceholder();
+  const meta = (dmChatsCache||{})[key]||{};
+  const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid) || '?';
+  const u = (meta.users||{})[otherUid]||{};
+  const html = dmMsgs.map(m=>{
+    const mineMsg = m.fromUid===me.uid;
+    const ava = m.fromPhoto ? `<img src="${esc(m.fromPhoto)}" alt="">` : esc((m.fromName||'?')[0].toUpperCase());
+    return `
+    <div class="msg ${mineMsg?'staff':''}">
+      <div class="ava">${ava}</div>
+      <div>
+        <div class="bubble">${esc(m.text)}</div>
+        <div class="meta">${esc(m.fromName||'?')}${ownerTag(m.fromName)} · ${timeStr(m.ts)}</div>
+      </div>
+    </div>`;
+  }).join('') || `<div class="locked-box">Сообщений пока нет — напишите первым.</div>`;
+  box.innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <div class="row" style="gap:10px">
+        <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?`<img src="${esc(u.photo)}" alt="">`:esc((u.name||'?')[0].toUpperCase())}</div>
+        <b>${esc(u.name||'Пользователь')}${ownerTag(u.name)}</b>
+        <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
+      </div>
+    </div>
+    <div class="chat-wrap" id="dmMsgList">${html}</div>
+    <div class="row" style="margin-top:12px">
+      <input id="dmInput" placeholder="Сообщение…" maxlength="1000" onkeydown="if(event.key==='Enter')sendDmMsg()">
+      <button class="btn" onclick="sendDmMsg()">Отправить</button>
+    </div>`;
+  const w = $('dmMsgList'); if(w) w.scrollTop = w.scrollHeight;
+}
+async function sendDmMsg(){
+  const key = dmOpenChatId; if(!key) return;
+  const inp = $('dmInput'); if(!inp) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value='';
+  try{
+    await db.ref('dmMsgs/'+key).push({
+      fromUid:me.uid, fromName:prof? prof.name:'?',
+      fromPhoto: prof? (prof.photo||null):null,
+      text, ts:Date.now()
+    });
+    const meta = (dmChatsCache||{})[key]||{};
+    const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid);
+    if(otherUid){
+      await db.ref('dmChats/'+key+'/meta').update({
+        lastText: text.slice(0,120), lastTs: Date.now(), lastFrom: me.uid,
+        ['users/'+me.uid+'/name']: prof? prof.name:'?',
+        ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
+        ['ids/'+me.uid]: prof? (prof.id||0):0,
+        ['ids/'+otherUid]: (meta.ids||{})[otherUid]||0
+      });
+      await db.ref('dmChats/'+key+'/meta/unread/'+otherUid).transaction(v=>(v||0)+1);
+    }
+  }catch(e){ toast('Не отправилось: '+e.message, true); }
+}
+async function dmStartById(){
+  if(!me) return;
+  const id = Number($('dmNewId').value);
+  if(!id) return toast('Введите ID пользователя', true);
+  try{
+    const s = await db.ref('users').get();
+    let target = null;
+    if(s && s.forEach) s.forEach(u=>{ if((u.val()||{}).id===id) target={uid:u.key, ...(u.val()||{})}; });
+    if(!target) return toast('Пользователь с таким ID не найден', true);
+    if(target.uid===me.uid) return toast('Это ваш собственный ID 🙂', true);
+    await startDmChat(target.uid, target.name||'Пользователь', target.photo||null, target.id||0);
+  }catch(e){ toast('Ошибка: '+e.message, true); }
+}
+async function startDmChat(uid, name, photo, siteId){
+  const key = dmKeyFor(me.uid, uid);
+  const metaRef = db.ref('dmChats/'+key+'/meta');
+  const snap = await metaRef.get();
+  if(!snap || !snap.exists()){
+    const users={}, ids={};
+    users[me.uid] = {name: prof? prof.name:'?', photo: prof? (prof.photo||null):null};
+    users[uid] = {name: name||'Пользователь', photo: photo||null};
+    ids[me.uid] = prof? (prof.id||0):0;
+    ids[uid] = siteId||0;
+    await metaRef.set({participants:{[me.uid]:true, [uid]:true}, users, ids, lastText:'', lastTs:0, lastFrom:'', unread:{}});
+  }
+  dmOpenChatId = key;
+  renderDmList();
+  openDmChat(key);
+}
+function dmWriteSellerByLot(lotId){
+  if(!me) return toast('Войдите, чтобы писать', true);
+  const l = (window._lots||[]).find(x=>x.id===lotId);
+  if(!l) return;
+  if(l.ownerUid===me.uid) return toast('Это ваш собственный лот 🙂', true);
+  startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0).then(()=>{ location.hash='inbox'; });
 }
 
 /* ===================== ПРОДАТЬ ===================== */
