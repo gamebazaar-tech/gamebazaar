@@ -85,6 +85,10 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .btn.small{padding:7px 14px;font-size:13px;border-radius:9px}
 .btn.wide{width:100%}
 .btn.danger{background:linear-gradient(135deg,#ef4444,#991b1b);box-shadow:0 0 18px rgba(239,68,68,.35)}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{padding:10px 22px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-weight:700;font-size:14px;transition:all .2s}
+.tab:hover{color:var(--text);border-color:var(--accent);box-shadow:var(--glow)}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;border-color:transparent;box-shadow:var(--glow)}
 .banner{background:radial-gradient(120% 150% at 25% 0%, rgba(109,63,214,.4) 0%, rgba(45,30,90,.55) 40%, rgba(20,14,40,.85) 100%);border:1px solid var(--accent-dark);border-radius:18px;padding:52px 24px;text-align:center;position:relative;overflow:hidden;box-shadow:var(--shadow),var(--glow)}
 .banner::before{content:'';position:absolute;top:-70px;right:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(217,70,239,.35),transparent 70%);pointer-events:none}
 .banner::after{content:'';position:absolute;bottom:-90px;left:-50px;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.3),transparent 70%);pointer-events:none}
@@ -148,6 +152,15 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .lot-img-big{width:100%;max-height:380px;object-fit:cover;border-radius:12px;margin:12px 0;background:var(--bg2)}
 .img-preview{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:10px;background:var(--bg2)}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+table.tbl th{color:var(--muted);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--border)}
+table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table-wrap{overflow-x:auto}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border-color .2s,box-shadow .2s}
+.stat:hover{border-color:var(--accent);box-shadow:var(--glow)}
+.stat .n{font-size:24px;font-weight:800;color:var(--accent2);text-shadow:0 0 18px rgba(167,139,250,.45)}
+.stat .l{color:var(--muted);font-size:12px;margin-top:2px}
 .log-row{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .log-row .who{font-weight:700;color:var(--accent2)}
 .notif-row{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
@@ -166,10 +179,6 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .dm-right{text-align:right;flex-shrink:0}
 .dm-time{color:var(--muted);font-size:11px}
 .dm-badge{display:inline-flex;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;font-weight:700;align-items:center;justify-content:center;margin-top:4px}
-.dots-btn{background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:999px;min-width:24px;height:24px;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center;margin-left:6px;transition:all .2s;flex-shrink:0;padding:0 4px}
-.dots-btn:hover{color:#fff;border-color:var(--accent);box-shadow:var(--glow)}
-.menu-grid{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.menu-grid .btn{width:100%;justify-content:flex-start}
 #toasts{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(340px,90vw)}
 .toast{background:var(--card2);border:1px solid var(--accent);border-radius:12px;padding:12px 16px;font-size:14px;box-shadow:var(--shadow),var(--glow);animation:tin .3s}
 .toast.err{border-color:var(--red);box-shadow:0 0 18px rgba(255,23,68,.35)}
@@ -186,6 +195,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
   .games-grid{grid-template-columns:1fr}
   .msg .bubble{max-width:86%}
   .modal{padding:18px}
+  table.tbl{font-size:13px}
   .profile-head{flex-direction:column;align-items:flex-start}
   main{padding:16px 12px 50px}
   /* На телефоне: чат сверху, список диалогов под ним */
@@ -238,7 +248,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.1 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.2 Space</div>
   </div>
 </footer>
 
@@ -248,10 +258,13 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v5.1: ГАЛОЧКА ВЛАДЕЛЬЦА БОЛЬШЕ НЕ ХРАНИТСЯ В БАЗЕ — она по
-   нику Sergey_Sergeev и не может пропасть. Меню «⋮» работает
-   даже если профиля нет в базе: берёт имя и ID из чата, и в нём
-   есть кнопка «Записать профиль в базу». Всё из v5.0 сохранено.
+   v5.2: ПОЛНАЯ АДМИН-ПАНЕЛЬ ВОЗВРАЩЕНА — вкладки «Обзор»,
+   «Начисление» (вписать ID и начислить рубли), «Лоты»,
+   «Пользователи», «Логи». Всё, что появилось после (меню «⋮»,
+   страницы чужих профилей), убрано. Имена не кликабельные.
+   Галочка владельца держится по нику Sergey_Sergeev — от базы
+   не зависит. Всё рабочее (чаты, лоты, мобильная раскладка)
+   сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -306,23 +319,15 @@ function isMobile(){ return window.innerWidth <= 820; }
 
 /* Бейджи рядом с именем.
    Владелец: бейдж и галочка ВСЕГДА по нику — от базы не зависят.
-   Остальные: галочка по полю verified из базы (если профиль есть). */
+   Остальные: галочка по полю verified из базы. */
 function whoTag(name, uid){
-  let s = '';
   if(isOwnerNick(name)) return ' <span class="badge owner-badge">Владелец</span><span class="verified" title="Подтверждённый пользователь">✓</span>';
   const u = uid ? (window._users||[]).find(x=>x.uid===uid) : null;
-  if(u && u.verified) s += '<span class="verified" title="Подтверждённый пользователь">✓</span>';
-  return s;
+  return (u && u.verified) ? '<span class="verified" title="Подтверждённый пользователь">✓</span>' : '';
 }
-/* Кнопка «⋮» — только для администрации, только не на своём имени.
-   Передаём и имя: если профиля в базе нет, меню откроется по имени из чата. */
-function dotsBtn(uid, name){
-  if(!isOwnerAdmin() || !uid || uid===me.uid) return '';
-  return '<button class="dots-btn" title="Действия администратора" onclick="event.stopPropagation();openUserMenu(\''+uid+'\',\''+encodeURIComponent(name||'')+'\')">⋮</button>';
-}
-/* Имя + бейджи + (для админов) «⋮» — некликабельный текст */
+/* Имя + бейджи — простой некликабельный текст */
 function namePlate(uid, name){
-  return esc(name||'Пользователь')+whoTag(name, uid)+dotsBtn(uid, name);
+  return esc(name||'Пользователь')+whoTag(name, uid);
 }
 function preserveInput(id){
   const el = document.getElementById(id);
@@ -346,6 +351,9 @@ function modal(html){
 }
 function closeModal(){ $('modalRoot').innerHTML=''; }
 function isOwnerAdmin(){ return prof && ['admin','owner'].includes(prof.role); }
+function findUserBySiteId(siteId){
+  return (window._users||[]).find(u=>Number(u.id)===Number(siteId))||null;
+}
 
 /* ===================== АУТЕНТИФИКАЦИЯ ===================== */
 let authMode='login';
@@ -355,7 +363,7 @@ function viewAuth(mode){
   return `
   <div class="auth-card card">
     <h2 style="margin-bottom:6px">${reg?'Регистрация':'Вход'}</h2>
-    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунt'}</p>
+    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунт'}</p>
     <div class="auth-tabs">
       <button class="${reg?'':'active'}" onclick="authMode='login';render()">Вход</button>
       <button class="${reg?'active':''}" onclick="authMode='reg';render()">Регистрация</button>
@@ -878,7 +886,7 @@ function viewInbox(){
             <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric">
             <button class="btn small" onclick="dmStartById()">Открыть</button>
           </div>
-          <div class="muted small" style="margin-top:8px">Впиши ID из Firebase — откроется чат. ${isOwnerAdmin()?'В шапке чата и рядом с сообщениями — «⋮»: галочка, имя, ID, баланс пользователя.':'Узнать ID пользователя можно в его сообщениях или у лотов.'}</div>
+          <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… Свой ID виден на главной и в профиле.</div>
         </div>
         <div class="card" style="padding:0;margin-top:12px;overflow:hidden" id="dmList"></div>
       </div>
@@ -993,7 +1001,7 @@ async function dmStartById(){
     const s = await db.ref('users').get();
     let target = null;
     if(s && s.forEach) s.forEach(u=>{ const v=u.val()||{}; if(Number(v.id)===id) target={uid:u.key, ...v}; });
-    if(!target) return toast('Пользователь с таким ID не найден — проверь ID в Firebase', true);
+    if(!target) return toast('Пользователь с таким ID не найден', true);
     if(target.uid===me.uid) return toast('Это ваш собственный ID 🙂', true);
     await startDmChat(target.uid, target.name||'Пользователь', target.photo||null, target.id||0);
   }catch(e){ toast('Ошибка: '+e.message, true); }
@@ -1020,199 +1028,6 @@ function dmWriteSellerByLot(lotId){
   if(!l) return;
   if(l.ownerUid===me.uid) return toast('Это ваш собственный лот 🙂', true);
   startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0).then(()=>{ location.hash='inbox'; });
-}
-
-/* ===================== МЕНЮ АДМИНИСТРАТОРА «⋮» =====================
-   Работает даже если профиля нет в базе: имя и ID берутся из
-   аргументов (передаются из чата/лота), и есть кнопка
-   «Записать профиль в базу» — она создаёт профиль заново. */
-function findUser(uid){ return (window._users||[]).find(x=>x.uid===uid)||null; }
-let menuCtx = {uid:null, name:'', id:0};
-
-function openUserMenu(uid, encName){
-  if(!isOwnerAdmin()) return;
-  const fallbackName = decodeURIComponent(encName||'');
-  const u0 = findUser(uid);
-  menuCtx = {uid, name: u0? (u0.name||fallbackName):fallbackName, id: u0? (u0.id||0):0};
-  if(!u0){
-    modal(`
-      <h3>${esc(fallbackName||'Пользователь')}${whoTag(fallbackName, uid)}</h3>
-      <p class="muted small">ID: <b style="color:var(--text)">${padId(menuCtx.id||0)}</b> · Баланс: —</p>
-      <div class="notice">Профиля этого пользователя нет в базе (потерялся). Можешь записать его заново — после этого все действия будут работать.</div>
-      <div class="menu-grid">
-        <button class="btn" onclick="writeProfileToDb()">💾 Записать профиль в базу</button>
-      </div>
-      <div class="row" style="justify-content:flex-end;margin-top:14px">
-        <button class="btn ghost small" onclick="closeModal()">Закрыть</button>
-      </div>`);
-    return;
-  }
-  const u = u0;
-  const checkTxt = u.verified ? 'Снять галочку ✓' : 'Выдать галочку ✓';
-  modal(`
-    <h3>${esc(u.name||'Пользователь')}${whoTag(u.name, uid)}</h3>
-    <p class="muted small">ID: <b style="color:var(--text)">${padId(u.id||0)}</b> · Баланс: ${fmt(u.balance)} ₽</p>
-    <div class="menu-grid">
-      <button class="btn" onclick="toggleVerified('${uid}')">✅ ${checkTxt}</button>
-      <button class="btn ghost" onclick="openEditName('${uid}')">✏️ Изменить имя</button>
-      <button class="btn ghost" onclick="openEditId('${uid}')">🔢 Изменить ID</button>
-      <button class="btn ghost" onclick="openTopUp('${uid}')">💰 Пополнить баланс</button>
-    </div>
-    <div class="row" style="justify-content:flex-end;margin-top:14px">
-      <button class="btn ghost small" onclick="closeModal()">Закрыть</button>
-    </div>`);
-}
-async function writeProfileToDb(){
-  const {uid, name} = menuCtx; if(!uid) return;
-  const nm = (name||'').trim();
-  if(nm.length<2) return toast('Имя неизвестно — сначала задай имя через «Изменить имя»', true);
-  try{
-    const isOwner = isOwnerNick(nm);
-    await db.ref('users/'+uid).set({
-      name:nm, email:'', role: isOwner?'owner':'user', verified: isOwner,
-      id: menuCtx.id||null, balance:0, photo:null, createdAt:Date.now()
-    });
-    if(!menuCtx.id){
-      const newId = await assignUserId(nm);
-      await db.ref('users/'+uid+'/id').set(newId);
-      menuCtx.id = newId;
-    }
-    log('Профиль записан в базу', nm+' (ID '+padId(menuCtx.id||0)+')');
-    toast('Профиль записан в базу');
-    openUserMenu(uid, encodeURIComponent(nm));
-  }catch(e){
-    console.error('[PayPlay] Запись профиля:', e);
-    toast('Не получилось: '+((e&&e.code)||e.message||'?'), true);
-  }
-}
-async function toggleVerified(uid){
-  const u = findUser(uid) || {name:menuCtx.name, verified:false};
-  const nv = !(u && u.verified);
-  try{
-    /* Если профиля нет — сначала запишем, потом переключим галочку */
-    if(!findUser(uid)) await writeProfileToDb();
-    await db.ref('users/'+uid+'/verified').set(nv);
-    log(nv?'Выдана галочка':'Снята галочка', u.name||'?');
-    await pushNotif(uid, nv? 'Администрация выдала вам галочку ✓' : 'Администрация сняла вашу галочку');
-    toast(nv? 'Галочка выдана пользователю '+(u.name||'?') : 'Галочка снята у '+(u.name||'?'));
-    openUserMenu(uid, encodeURIComponent(menuCtx.name));
-  }catch(e){
-    console.error('[PayPlay] Галочка:', e);
-    toast('Не получилось: '+((e&&e.code)||e.message||'?'), true);
-  }
-}
-function openEditName(uid){
-  const u = findUser(uid) || {name: menuCtx.name};
-  modal(`
-    <h3>Изменить имя</h3>
-    <p class="muted small">Сейчас: <b style="color:var(--text)">${esc(u.name||'?')}</b></p>
-    <label>Новое имя</label>
-    <input id="admNewName" maxlength="24" value="${esc(u.name||'')}">
-    <div class="err" id="admNameErr"></div>
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
-      <button class="btn" onclick="saveAdmName('${uid}')">Сохранить</button>
-    </div>`);
-}
-async function saveAdmName(uid){
-  const newName = $('admNewName').value.trim();
-  const err = $('admNameErr'); err.textContent='';
-  if(newName.length<2) return err.textContent='Имя — минимум 2 символа';
-  const u0 = findUser(uid);
-  const old = u0? (u0.name||'') : menuCtx.name;
-  try{
-    /* Если профиля нет — запись имени создаст его */
-    await db.ref('users/'+uid+'/name').set(newName);
-    if(!u0){
-      await db.ref('users/'+uid+'/email').set('');
-      await db.ref('users/'+uid+'/role').set(isOwnerNick(newName)?'owner':'user');
-      await db.ref('users/'+uid+'/verified').set(isOwnerNick(newName));
-      await db.ref('users/'+uid+'/balance').set(0);
-      await db.ref('users/'+uid+'/createdAt').set(Date.now());
-      if(!menuCtx.id){
-        const newId = await assignUserId(newName);
-        await db.ref('users/'+uid+'/id').set(newId);
-        menuCtx.id = newId;
-      }
-    }
-    await db.ref('lots').orderByChild('ownerUid').equalTo(uid).once('value').then(s=>{
-      s.forEach(l=>db.ref('lots/'+l.key+'/ownerName').set(newName));
-    });
-    log('Изменено имя', '«'+old+'» → «'+newName+'»');
-    await pushNotif(uid, 'Администрация изменила ваше имя: теперь вы «'+newName+'»');
-    menuCtx.name = newName;
-    toast('Имя изменено: «'+newName+'»');
-    openUserMenu(uid, encodeURIComponent(newName));
-  }catch(e){
-    console.error('[PayPlay] Смена имени:', e);
-    err.textContent = (e&&e.code)||e.message||'ошибка';
-  }
-}
-function openEditId(uid){
-  const u = findUser(uid) || {id: menuCtx.id};
-  modal(`
-    <h3>Изменить ID</h3>
-    <p class="muted small">Сейчас: ID <b style="color:var(--text)">${padId(u.id||0)}</b> · пользователь: ${esc(menuCtx.name||'?')}</p>
-    <label>Новый ID (число больше нуля)</label>
-    <input id="admNewId" inputmode="numeric" placeholder="Например: 7">
-    <div class="err" id="admIdErr"></div>
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
-      <button class="btn" onclick="saveAdmId('${uid}')">Сохранить</button>
-    </div>`);
-}
-async function saveAdmId(uid){
-  const raw = $('admNewId').value.trim();
-  const newId = parseInt(raw,10);
-  const err = $('admIdErr'); err.textContent='';
-  if(!raw || !Number.isInteger(newId) || newId<=0) return err.textContent='ID — целое число больше нуля';
-  const u = findUser(uid);
-  try{
-    const s = await db.ref('users').get();
-    let taken = null;
-    if(s && s.forEach) s.forEach(x=>{ const v=x.val()||{}; if(Number(v.id)===newId && x.key!==uid) taken=v; });
-    if(taken) return err.textContent='ID занят: его уже носит «'+(taken.name||'?')+'». Выбери другой номер.';
-    const oldId = (u? (u.id||0) : menuCtx.id)||0;
-    await db.ref('users/'+uid+'/id').set(newId);
-    menuCtx.id = newId;
-    log('Изменён ID', (menuCtx.name||'?')+': '+padId(oldId)+' → '+padId(newId));
-    await pushNotif(uid, 'Администрация изменила ваш ID: теперь он '+padId(newId));
-    toast('ID изменён: '+padId(oldId)+' → '+padId(newId));
-    openUserMenu(uid, encodeURIComponent(menuCtx.name||''));
-  }catch(e){
-    console.error('[PayPlay] Смена ID:', e);
-    err.textContent = (e&&e.code)||e.message||'ошибка';
-  }
-}
-function openTopUp(uid){
-  const u = findUser(uid);
-  if(!u) return toast('Сначала запиши профиль в базу', true);
-  modal(`
-    <h3>Пополнить баланс</h3>
-    <p class="muted small">${esc(u.name||'?')} · сейчас ${fmt(u.balance)} ₽</p>
-    <label>Сумма зачисления</label>
-    <input id="admTopAmount" type="number" min="1" placeholder="Сумма, ₽">
-    <div class="err" id="admTopErr"></div>
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
-      <button class="btn" onclick="adminTopUpNow('${uid}')">Начислить</button>
-    </div>`);
-}
-async function adminTopUpNow(uid){
-  const u = findUser(uid); if(!u) return;
-  const amount = Number($('admTopAmount').value);
-  const err = $('admTopErr'); err.textContent='';
-  if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
-  try{
-    await db.ref('users/'+uid+'/balance').transaction(b=>(b||0)+amount);
-    await pushNotif(uid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
-    log('Начисление', fmt(amount)+' ₽ пользователю '+(u.name||'?')+' (ID '+padId(u.id||0)+')');
-    toast('Зачислено '+fmt(amount)+' ₽ — '+(u.name||'?'));
-    openUserMenu(uid, encodeURIComponent(menuCtx.name||''));
-  }catch(e){
-    console.error('[PayPlay] Начисление:', e);
-    err.textContent = (e&&e.code)||e.message||'ошибка';
-  }
 }
 
 /* ===================== ПРОДАТЬ ===================== */
@@ -1359,37 +1174,187 @@ async function saveProfile(){
   }
 }
 
-/* ===================== АДМИН-ПАНЕЛЬ (только логи) ===================== */
+/* ===================== АДМИН-ПАНЕЛЬ (ПОЛНАЯ, КАК РАНЬШЕ) =====================
+   Вкладки: Обзор · Начисление · Лоты · Пользователи · Логи. */
+let admTab = 'overview';
+let admFoundUser = null;
+
 function viewAdmin(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
   if(!isOwnerAdmin()){ $('app').innerHTML = '<div class="card">Доступ только для администрации.</div>'; return; }
   $('app').innerHTML = `
     <h2>Админ-панель</h2>
-    <p class="muted small" style="margin-top:6px">Здесь журнал действий. Управлять пользователями (галочка, имя, ID, баланс) — через «Сообщения»: начните чат по ID из Firebase и нажмите «⋮» рядом с именем в шапке чата.</p>
-    <div class="card" style="margin-top:14px">
-      <h3>Логи действий</h3>
-      <div id="admLogsBox" style="margin-top:10px"><span class="muted small">Загрузка…</span></div>
-    </div>`;
-  renderAdmLogs();
+    <div class="tabs" style="margin-top:14px">
+      <button class="tab ${admTab==='overview'?'active':''}" onclick="setAdmTab('overview')">Обзор</button>
+      <button class="tab ${admTab==='topup'?'active':''}" onclick="setAdmTab('topup')">Начисление</button>
+      <button class="tab ${admTab==='lots'?'active':''}" onclick="setAdmTab('lots')">Лоты</button>
+      <button class="tab ${admTab==='users'?'active':''}" onclick="setAdmTab('users')">Пользователи</button>
+      <button class="tab ${admTab==='logs'?'active':''}" onclick="setAdmTab('logs')">Логи</button>
+    </div>
+    <div id="admTabBox"></div>`;
+  renderAdmTab();
 }
+function setAdmTab(t){ admTab=t; renderAdmTab(); }
 function refreshAdminLive(){
   const path=(location.hash.slice(1)||'home').split('?')[0];
-  if(path!=='admin' || !isOwnerAdmin() || !$('admLogsBox')) return;
-  renderAdmLogs();
+  if(path!=='admin' || !isOwnerAdmin() || !$('admTabBox')) return;
+  renderAdmTab();
 }
-function renderAdmLogs(){
-  const lb = $('admLogsBox'); if(!lb) return;
+function renderAdmTab(){
+  const box = $('admTabBox'); if(!box || !isOwnerAdmin()) return;
+  if(admTab==='overview'){
+    const users = window._users||[];
+    const lots = window._lots||[];
+    const sold = lots.filter(l=>l.status==='sold');
+    const turnover = sold.reduce((s,l)=>s+Number(l.price||0),0);
+    box.innerHTML = `
+      <div class="stat-grid">
+        <div class="stat"><div class="n">${users.length}</div><div class="l">Пользователей</div></div>
+        <div class="stat"><div class="n">${lots.length}</div><div class="l">Всего лотов</div></div>
+        <div class="stat"><div class="n">${sold.length}</div><div class="l">Продано лотов</div></div>
+        <div class="stat"><div class="n">${fmt(turnover)} ₽</div><div class="l">Оборот продаж</div></div>
+      </div>`;
+    return;
+  }
+  if(admTab==='topup'){
+    box.innerHTML = `
+      <div class="card">
+        <h3>Начисление баланса по ID</h3>
+        <label>ID пользователя (число на сайте)</label>
+        <div class="row" style="flex-wrap:nowrap">
+          <input id="admFindId" inputmode="numeric" placeholder="Например: 6" style="max-width:200px">
+          <button class="btn small" onclick="admFindUser()">Найти</button>
+        </div>
+        <div id="admFoundBox"></div>
+      </div>`;
+    if(admFoundUser) drawAdmFound();
+    return;
+  }
+  if(admTab==='lots'){
+    const lots = window._lots||[];
+    box.innerHTML = `<div class="card">
+      <h3>Все лоты (${lots.length})</h3>
+      <div style="margin-top:10px">${lots.length? lots.map(l=>`
+        <div class="log-row">
+          <span class="tag game">${esc(l.game)}</span>
+          <span style="font-weight:700">${esc(l.title)}</span>
+          <span class="price">${fmt(l.price)} ₽</span>
+          <span class="muted small">${esc(l.ownerName||'?')}</span>
+          ${l.status==='sold'? '<span class="tag sold">Продан</span>':''}
+          <span style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <a class="small" href="#lot?id=${l.id}">открыть</a>
+            <button class="btn small danger" onclick="adminRemoveLot('${l.id}')">Удалить</button>
+          </span>
+        </div>`).join('') : '<div class="locked-box">Лотов пока нет</div>'}
+      </div>
+    </div>`;
+    return;
+  }
+  if(admTab==='users'){
+    const users = window._users||[];
+    box.innerHTML = `<div class="card">
+      <h3>Пользователи (${users.length})</h3>
+      <div class="table-wrap" style="margin-top:10px">
+        <table class="tbl">
+          <tr><th>ID</th><th>Имя</th><th>Баланс</th><th>Роль</th><th>Зарегистрирован</th><th></th></tr>
+          ${users.length? users.map(u=>`
+            <tr>
+              <td><b>${padId(u.id||0)}</b></td>
+              <td>${namePlate(u.uid, u.name)}${u.email? '<div class="muted small">'+esc(u.email)+'</div>':''}</td>
+              <td class="price">${fmt(u.balance)} ₽</td>
+              <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
+              <td class="muted small">${u.createdAt? timeStr(u.createdAt):'—'}</td>
+              <td><button class="btn small ghost" onclick="gotoTopUp(${Number(u.id||0)})">Начислить</button></td>
+            </tr>`).join('') : '<tr><td colspan="6" class="locked-box">Пользователей пока нет</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+    return;
+  }
+  /* Логи */
+  box.innerHTML = `<div class="card">
+    <h3>Логи действий</h3>
+    <div id="admLogsBox" style="margin-top:10px"><span class="muted small">Загрузка…</span></div>
+  </div>`;
   db.ref('logs').limitToLast(80).once('value').then(s=>{
-    if(!$('admLogsBox')) return;
+    if(!$('admLogsBox') || admTab!=='logs') return;
     const arr=[]; if(s && s.forEach) s.forEach(l=>arr.push(l.val()));
     arr.reverse();
-    lb.innerHTML = arr.map(r=>`
+    $('admLogsBox').innerHTML = arr.map(r=>`
         <div class="log-row">
-          <span class="who">${esc(r.actorName||'?')}${whoTag(r.actorName, r.actorUid)}${dotsBtn(r.actorUid, r.actorName)}</span>
+          <span class="who">${esc(r.actorName||'?')}${whoTag(r.actorName, r.actorUid)}</span>
           <span><b>${esc(r.action)}</b>${r.details? ' — '+esc(r.details):''}</span>
           <span class="muted small" style="margin-left:auto">${timeStr(r.ts)}</span>
         </div>`).join('') || '<div class="locked-box">Логов пока нет</div>';
   }).catch(()=>{});
+}
+function admFindUser(){
+  admFoundUser = null;
+  const raw = $('admFindId').value.trim();
+  const id = parseInt(raw,10);
+  if(!raw || !Number.isInteger(id) || id<=0) return toast('Введите числовой ID', true);
+  const u = findUserBySiteId(id);
+  if(!u) return toast('Пользователь с ID '+padId(id)+' не найден', true);
+  admFoundUser = u;
+  drawAdmFound();
+}
+function drawAdmFound(){
+  const box = $('admFoundBox'); if(!box) return;
+  const u = admFoundUser;
+  if(!u){ box.innerHTML=''; return; }
+  box.innerHTML = `
+    <div class="card" style="margin-top:14px;background:var(--card2)">
+      <div class="row" style="justify-content:space-between;gap:10px">
+        <div>
+          <b style="font-size:17px">${esc(u.name||'?')}${whoTag(u.name, u.uid)}</b>
+          <div class="muted small">ID: ${padId(u.id||0)} · Роль: ${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</div>
+          <div class="muted small">Баланс сейчас: <b style="color:var(--text)">${fmt(u.balance)} ₽</b></div>
+        </div>
+      </div>
+      <label style="margin-top:12px">Сумма начисления, ₽</label>
+      <div class="row" style="flex-wrap:nowrap">
+        <input id="admAmount" type="number" min="1" placeholder="Например: 500">
+        <button class="btn" onclick="admDoTopUp()">Начислить</button>
+      </div>
+      <div class="err" id="admTopErr"></div>
+    </div>`;
+}
+async function admDoTopUp(){
+  const u = admFoundUser; if(!u) return;
+  const amount = Number($('admAmount').value);
+  const err = $('admTopErr'); err.textContent='';
+  if(!amount || amount<=0) return err.textContent='Введите сумму больше нуля';
+  try{
+    await db.ref('users/'+u.uid+'/balance').transaction(b=>(b||0)+amount);
+    await pushNotif(u.uid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
+    log('Начисление', fmt(amount)+' ₽ пользователю '+(u.name||'?')+' (ID '+padId(u.id||0)+')');
+    toast('Зачислено '+fmt(amount)+' ₽ — '+(u.name||'?'));
+    admFoundUser = findUserBySiteId(u.id) || {...u, balance:(Number(u.balance||0)+amount)};
+    drawAdmFound();
+  }catch(e){
+    console.error('[PayPlay] Начисление:', e);
+    err.textContent = (e&&e.code)||e.message||'ошибка';
+  }
+}
+function gotoTopUp(siteId){
+  admTab='topup';
+  viewAdmin();
+  $('admFindId').value = String(siteId);
+  admFindUser();
+}
+async function adminRemoveLot(id){
+  modal('<h3>Удалить лот (админ)?</h3>'+
+    '<div class="row" style="justify-content:flex-end;margin-top:14px">'+
+    '<button class="btn ghost" onclick="closeModal()">Отмена</button>'+
+    '<button class="btn danger" onclick="confirmAdminRemoveLot(\''+id+'\')">Удалить</button></div>');
+}
+async function confirmAdminRemoveLot(id){
+  closeModal();
+  const l = (window._lots||[]).find(x=>x.id===id);
+  await db.ref('lots/'+id).remove();
+  await db.ref('lotChats/'+id).remove();
+  log('Удалён лот (админ)', l? '«'+l.title+'»' : id);
+  toast('Лот удалён');
 }
 
 /* Старт */
