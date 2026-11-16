@@ -1320,11 +1320,16 @@ function renderAdmTab(){
 }
 function admFindUser(){
   admFoundUser = null;
-  const raw = $('admFindId').value.trim();
+    const raw = $('admFindId').value.trim();
+  if(!raw) return toast('Введите код пользователя, например PP-7F3K9', true);
+  const byCode = findUserByCode(raw);
+  if(byCode){ admFoundUser = byCode; drawAdmFound(); return; }
   const id = parseInt(raw,10);
-  if(!raw || !Number.isInteger(id) || id<=0) return toast('Введите числовой ID', true);
-  const u = findUserBySiteId(id);
-  if(u){ admFoundUser = u; drawAdmFound(); return; }
+  if(Number.isInteger(id) && id>0){
+    const u = findUserBySiteId(id);
+    if(u){ admFoundUser = u; drawAdmFound(); return; }
+  }
+
   /* ID не нашёлся — показываем подсказку: кто есть в базе и их ID */
   const users = window._users||[];
   toast('Пользователь с ID '+padId(id)+' не найден — смотри подсказку ниже', true);
@@ -1383,7 +1388,7 @@ function gotoTopUp(siteId){
   admFoundUser=null;
   viewAdmin();
   $('admFindId').value = String(siteId);
-  if(siteId>0) admFindUser();
+  admFindUser();
 }
 async function adminRemoveLot(id){
   modal('<h3>Удалить лот (админ)?</h3>'+
