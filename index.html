@@ -532,7 +532,6 @@ function render(){
   const [path] = h.split('?');
   closeModal();
   if(path!=='lot') detachLotChat();
-  if(path!=='profile') detachRefunds();
   if(path!=='inbox') dmCloseChatListener();
   document.querySelectorAll('[data-nav]').forEach(a=>a.classList.toggle('active', a.dataset.nav===path));
   $('mobileNav').classList.remove('open');
@@ -1145,7 +1144,6 @@ async function confirmRemoveLot(id){
 function viewProfile(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
   if(!prof){ $('app').innerHTML = '<div class="locked-box">Загрузка профиля… Если висит долго — смотри уведомления справа внизу.</div>'; return; }
-  if(window._profTab!=='lots' && window._profTab!=='refunds') window._profTab='lots';
   $('app').innerHTML = `
     <div class="card">
       <div class="profile-head">
@@ -1169,108 +1167,28 @@ function viewProfile(){
       <div class="muted small" style="margin-top:10px">Пополнение идёт через нашего ВК-бота: нажмите кнопку, и откроется чат с ботом, где вам дадут инструкцию.</div>
     </div>
     <div class="tabs" style="margin-top:18px">
-      <button class="tab ${window._profTab==='lots'?'active':''}" onclick="setProfTab('lots')">Мои лоты</button>
-      <button class="tab ${window._profTab==='refunds'?'active':''}" onclick="setProfTab('refunds')">Возврат средств</button>
+      <button class="tab ${profTab==='lots'?'active':''}" onclick="setProfTab('lots')">Мои лоты</button>
+      <button class="tab ${profTab==='refund'?'active':''}" onclick="setProfTab('refund')">Возврат средств</button>
     </div>
-    <div id="profTabBody"></div>`;
+    <div id="profTabBox"></div>`;
   renderProfTab();
 }
-function setProfTab(t){ window._profTab=t; renderProfTab(); }
+let profTab = 'lots';
+function setProfTab(t){ profTab=t; renderProfTab(); }
 function renderProfTab(){
-  const box=$('profTabBody'); if(!box) return;
-  if(window._profTab==='refunds') renderRefundTab();
-  else { box.innerHTML='<div class="section-title">Мои лоты</div><div class="card" id="myLots"></div>'; renderMyLots(); }
-}
-
-/* ===================== ВОЗВРАТ СРЕДСТВА =====================
-   Заявки хранятся в базе в узле refunds. Пользователь видит
-   только свои заявки (в профиле), админ — все (вкладка
-   «Возвраты» в админ-панели). */
-let refUnsub=null, refCache=null;
-function detachRefunds(){ if(refUnsub){ refUnsub(); refUnsub=null; } refCache=null; }
-function attachRefunds(){
-  if(refUnsub) return;
-  refUnsub = listen('refunds', snap=>{
-    refCache=[];
-    if(snap && snap.forEach) snap.forEach(x=>{ const v=x.val()||{}; if(v && v.uid) refCache.push({key:x.key, ...v}); });
-    refCache.sort((x,y)=>(y.ts||0)-(x.ts||0));
-    if(window._profTab==='refunds') renderRefList();
-    if(admTab==='refunds') renderAdmTab();
-  });
-}
-const REF_CAUSES=['Не поступил товар от продавца','Оплата не дошла до баланса','Списали деньги дважды','Отменил заказ — хочу вернуть деньги','Другое'];
-const REF_STATUS={pending:'На рассмотрении', approved:'Одобрена', declined:'Отклонена'};
-function refStatusColor(s){ return s==='approved'?'var(--green)':s==='declined'?'#ff8f8f':'#fbbf24'; }
-function renderRefundTab(){
-  const box=$('profTabBody'); if(!box) return;
-  attachRefunds();
-  box.innerHTML = `
-    <div class="section-title">Возврат средств</div>
-    <div class="card">
-      <div class="notice">Опишите проблему: если оплата не дошла до баланса или товар не получен — администрация рассмотрит заявку и вернёт средства на ваш баланс.</div>
-      <label>Игра</label>
-      <select id="rfGame">${GAMES.map(g=>'<option>'+esc(g)+'</option>').join('')}</select>
-      <label>Сумма возврата (₽)</label>
-      <input id="rfAmount" inputmode="numeric" placeholder="Например: 500">
-      <label>Причина</label>
-      <select id="rfCause">${REF_CAUSES.map(c=>'<option>'+esc(c)+'</option>').join('')}</select>
-      <label>Подробности (необязательно)</label>
-      <textarea id="rfDetails" maxlength="500" placeholder="Опишите, что произошло — так заявка рассмотрится быстрее"></textarea>
-      <div class="err" id="rfErr"></div>
-      <button class="btn" onclick="submitRefund()">Отправить заявку</button>
-    </div>
-    <div class="section-title">Мои заявки</div>
-    <div class="card" id="refList"></div>`;
-  renderRefList();
-}
-function renderRefList(){
-  const box=$('refList'); if(!box || !me) return;
-  const list=(refCache||[]).filter(r=>r.uid===me.uid);
-  box.innerHTML = list.length? list.map(r=>`
-    <div class="log-row">
-      <span class="tag game">${esc(r.game)}</span>
-      <span class="price">${fmt(r.amount)} ₽</span>
-      <span class="muted small">${esc(r.cause)}</span>
-      <span style="font-weight:700;color:${refStatusColor(r.status)}">${REF_STATUS[r.status]||esc(r.status)}</span>
-      <span class="muted small">${timeStr(r.ts)}</span>
-      ${r.adminNote? '<div class="muted small" style="width:100%">Ответ администрации: '+esc(r.adminNote)+'</div>':''}
-    </div>`).join('') : '<div class="locked-box">Заявок пока нет — отправьте заявку выше, и мы разберёмся</div>';
-}
-async function submitRefund(){
-  if(!(me&&prof)) return toast('Сначала войдите на сайт', true);
-  const game=$('rfGame') ? $('rfGame').value : '',
-        amount=Math.floor(Number($('rfAmount') ? $('rfAmount').value : 0)||0),
-        cause=$('rfCause') ? $('rfCause').value : '',
-        details=(($('rfDetails')||{}).value||'').trim();
-  const err=$('rfErr'); if(!err) return;
-  if(amount<=0) return err.textContent='Введите сумму возврата — число больше нуля';
-  if(amount>1000000) return err.textContent='Сумма слишком большая — проверьте число';
-  try{
-    await db.ref('refunds').push({uid:me.uid, name:prof.name||'?', siteId:prof.id||0, game, amount, cause, details, status:'pending', ts:Date.now()});
-    $('rfAmount').value=''; $('rfDetails').value='';
-    err.textContent='';
-    toast('Заявка отправлена — ответ появится здесь же, в профиле');
-  }catch(e){
-    console.error('[PayPlay] Заявка на возврат:', e);
-    err.textContent = e.message||'Ошибка отправки';
+  const box = $('profTabBox'); if(!box) return;
+  if(profTab==='refund'){
+    box.innerHTML = `
+      <div class="card" style="text-align:center">
+        <h3>Возврат средств</h3>
+        <p class="muted" style="margin:10px 0 16px">Раздел пока в разработке. Не хотите ждать? Пишите в поддержку — нашему боту в ВК.</p>
+        <a class="btn" href="${VK_BOT_LINK}" target="_blank" rel="noopener">Написать в поддержку в ВК</a>
+      </div>`;
+    return;
   }
+  box.innerHTML = '<div class="section-title">Мои лоты</div><div class="card" id="myLots"></div>';
+  renderMyLots();
 }
-async function decideRefund(key, ok){
-  if(!isOwnerAdmin()) return;
-  const r=(refCache||[]).find(x=>x.key===key); if(!r) return;
-  const note = ok? 'Заявка одобрена — средства зачислены на баланс' : (prompt('Причина отклонения (можно оставить пустым):')||'');
-  try{
-    await db.ref('refunds/'+key).update({status: ok?'approved':'declined', decidedTs:Date.now(), adminNote:note});
-    if(ok && !r.credited){
-      await db.ref('users/'+r.uid+'/balance').transaction(cur=>Number(cur||0)+Number(r.amount||0));
-      await db.ref('refunds/'+key+'/credited').set(true);
-    }
-    await pushNotif(r.uid, ok? ('Ваша заявка на возврат одобрена: '+fmt(r.amount)+' ₽ зачислены на баланс') : ('Ваша заявка на возврат отклонена'+(note? ': '+note:'')));
-    log('Возврат средств', (ok?'Одобрена':'Отклонена')+' заявка пользователя '+padId(r.siteId||0)+' на '+fmt(r.amount)+' ₽');
-    toast(ok? 'Заявка одобрена' : 'Заявка отклонена');
-  }catch(e){ console.error('[PayPlay] Решение по возврату:', e); toast('Ошибка: '+(e.message||e), true); }
-}
-
 function editProfile(){
   modal(`
     <h3>Изменить профиль</h3>
@@ -1333,6 +1251,15 @@ function refreshAdminLive(){
 }
 function renderAdmTab(){
   const box = $('admTabBox'); if(!box || !isOwnerAdmin()) return;
+  if(admTab==='refunds'){
+    box.innerHTML = `
+      <div class="card" style="text-align:center">
+        <h3>Возвраты</h3>
+        <p class="muted" style="margin:10px 0 16px">Раздел пока в разработке. Заявки от пользователей принимаются в поддержку — боту в ВК.</p>
+        <a class="btn" href="${VK_BOT_LINK}" target="_blank" rel="noopener">Открыть бота поддержки в ВК</a>
+      </div>`;
+    return;
+  }
   if(admTab==='overview'){
     const users = window._users||[];
     const lots = window._lots||[];
@@ -1402,25 +1329,6 @@ function renderAdmTab(){
               </td>
             </tr>`).join('') : '<tr><td colspan="6" class="locked-box">Пользователей пока нет</td></tr>'}
         </table>
-      </div>
-    </div>`;
-    return;
-  }
-  if(admTab==='refunds'){
-    const list=(refCache||[]);
-    const pend=list.filter(r=>r.status==='pending');
-    box.innerHTML = `<div class="card">
-      <h3>Заявки на возврат (${list.length}, новых: ${pend.length})</h3>
-      <div style="margin-top:10px">${list.length? list.map(r=>`
-        <div class="log-row">
-          <span class="tag game">${esc(r.game)}</span>
-          <span style="font-weight:700">${esc(r.name||'?')} <span class="muted small">ID ${padId(r.siteId||0)}</span></span>
-          <span class="price">${fmt(r.amount)} ₽</span>
-          <span class="muted small">${esc(r.cause)}${r.details? ' — '+esc(r.details):''}</span>
-          <span style="font-weight:700;color:${refStatusColor(r.status)}">${REF_STATUS[r.status]||esc(r.status)}</span>
-          <span class="muted small">${timeStr(r.ts)}</span>
-          ${r.status==='pending'? '<span style="margin-left:auto;display:flex;gap:8px;align-items:center"><button class="btn small" onclick="decideRefund(\''+r.key+'\', true)">Одобрить</button><button class="btn small danger" onclick="decideRefund(\''+r.key+'\', false)">Отклонить</button></span>':''}
-        </div>`).join('') : '<div class="locked-box">Заявок пока нет</div>'}
       </div>
     </div>`;
     return;
