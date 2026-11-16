@@ -311,6 +311,24 @@ const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','
 const fmt = n => Number(n||0).toLocaleString('ru-RU');
 const timeStr = ts => new Date(ts).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 const padId = n => String(Number(n||0));
+
+/* Уникальные коды пользователей (PP-XXXXX) вместо числовых ID.
+   Код выводится из ключа записи в базе — он постоянный и не повторяется. */
+function codeFromKey(key){
+  const s = String(key||'x');
+  let h = 5381;
+  for(let i=0;i<s.length;i++){ h = ((h*33) ^ s.charCodeAt(i)) >>> 0; }
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code='', n=h;
+  for(let i=0;i<5;i++){ code += abc[n%32]; n = Math.floor(n/32); }
+  return 'PP-'+code;
+}
+const userCode = u => (u && u.uid) ? codeFromKey(u.uid) : '—';
+function findUserByCode(code){
+  const c = String(code||'').trim().toUpperCase();
+  if(!c) return null;
+  return (window._users||[]).find(u=>userCode(u)===c)||null;
+}
 const isOwnerNick = name => (name||'')===OWNER_NICK;
 function isMobile(){ return window.innerWidth <= 820; }
 
@@ -395,7 +413,7 @@ async function doRegister(){
       name, email, role: isOwner?'owner':'user', verified: isOwner,
       id: uid, balance:0, photo:null, createdAt:Date.now()
     });
-    toast('Добро пожаловать в Pay Play! Ваш ID: '+padId(uid));
+    toast('Добро пожаловать в Pay Play! Ваш код: '+codeFromKey(cred.user.uid));
     location.hash='home';
   }catch(e){
     console.error('[PayPlay] Регистрация:', e);
@@ -561,7 +579,6 @@ listen('users', snap => {
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
 });
 
-
 /* ===================== ГЛАВНАЯ ===================== */
 function viewHome(){
   $('app').innerHTML = `
@@ -580,7 +597,7 @@ function viewHome(){
           ? '<button class="btn" onclick="openDeposit()">Пополнить баланс</button>'
           : '<a class="btn" href="#profile">Войдите, чтобы пополнить</a>'}
       </div>
-      ${(me&&prof)?`<div class="muted small" style="margin-top:8px">Ваш ID: <b style="color:var(--text)">${padId(prof.id||0)}</b> — называйте его при пополнении</div>`:''}
+      ${(me&&prof)?`<div class="muted small" style="margin-top:8px">Ваш код: <b style="color:var(--text)">${userCode(me)}</b> — называйте его при пополнении</div>`:''}
     </div>
     <div class="section-title">Каталог игр</div>
     <div class="games-grid">
@@ -885,12 +902,12 @@ function viewInbox(){
     <div class="dm-wrap" style="margin-top:14px">
       <div>
         <div class="card" style="padding:14px">
-          <label style="margin-top:0">Начать чат по ID сайта</label>
+          <label style="margin-top:0">Начать чат по коду пользователя</label>
           <div class="row" style="flex-wrap:nowrap">
-            <input id="dmNewId" placeholder="Например: 2" style="max-width:160px" inputmode="numeric">
+            <input id="dmNewId" placeholder="Например: PP-7F3K9" style="max-width:160px">
             <button class="btn small" onclick="dmStartById()">Открыть</button>
           </div>
-          <div class="muted small" style="margin-top:8px">ID — простое число: 1, 2, 3… Свой ID виден на главной и в профиле.</div>
+          <div class="muted small" style="margin-top:8px">Код вида PP-XXXXX. Свой код виден на главной и в профиле.</div>
         </div>
         <div class="card" style="padding:0;margin-top:12px;overflow:hidden" id="dmList"></div>
       </div>
@@ -956,7 +973,7 @@ function drawDmChat(){
       <div class="row" style="gap:10px">
         <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
         <b>${namePlate(otherUid, u.name)}</b>
-        <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
+        <span class="muted small">Код: ${codeFromKey(otherUid)}</span>
       </div>
     </div>
     <div class="chat-wrap" id="dmMsgList">${html}</div>
@@ -999,14 +1016,18 @@ async function sendDmMsg(){
 async function dmStartById(){
   if(!me) return;
   const raw = $('dmNewId').value.trim();
-  const id = parseInt(raw,10);
-  if(!raw || !Number.isInteger(id) || id<=0) return toast('Введите числовой ID, например 2', true);
+  if(!raw) return toast('Введите код пользователя, например PP-7F3K9', true);
   try{
-    const s = await db.ref('users').get();
-    let target = null;
-    if(s && s.forEach) s.forEach(u=>{ const v=u.val()||{}; if(Number(v.id)===id) target={uid:u.key, ...v}; });
-    if(!target) return toast('Пользователь с таким ID не найден', true);
-    if(target.uid===me.uid) return toast('Это ваш собственный ID 🙂', true);
+    let target = findUserByCode(raw);
+    if(!target && /^\d+$/.test(raw)){
+      const id = parseInt(raw,10);
+      if(Number.isInteger(id) && id>0){
+        const s = await db.ref('users').get();
+        if(s && s.forEach) s.forEach(u=>{ const v=u.val()||{}; if(Number(v.id)===id) target={uid:u.key, ...v}; });
+      }
+    }
+    if(!target) return toast('Пользователь с таким кодом не найден', true);
+    if(target.uid===me.uid) return toast('Это ваш собственный код 🙂', true);
     await startDmChat(target.uid, target.name||'Пользователь', target.photo||null, target.id||0);
   }catch(e){ toast('Ошибка: '+e.message, true); }
 }
@@ -1128,7 +1149,7 @@ function viewProfile(){
         <div class="avatar">${prof.photo?'<img src="'+esc(prof.photo)+'" alt="">':esc((prof.name||'?')[0].toUpperCase())}</div>
         <div>
           <h2>${esc(prof.name)}${whoTag(prof.name, me.uid)}</h2>
-          <div class="muted small">ID на сайте: <b style="color:var(--text)">${padId(prof.id||0)}</b> · Email: ${esc(prof.email||'—')}</div>
+          <div class="muted small">Код: <b style="color:var(--text)">${userCode(me)}</b> · Email: ${esc(prof.email||'—')}</div>
         </div>
         <div class="row" style="margin-left:auto">
           <button class="btn ghost small" onclick="editProfile()">Изменить профиль</button>
@@ -1225,10 +1246,10 @@ function renderAdmTab(){
   if(admTab==='topup'){
     box.innerHTML = `
       <div class="card">
-        <h3>Начисление баланса по ID</h3>
-        <label>ID пользователя (число на сайте)</label>
+        <h3>Начисление баланса по коду</h3>
+        <label>Код пользователя (например PP-7F3K9)</label>
         <div class="row" style="flex-wrap:nowrap">
-          <input id="admFindId" inputmode="numeric" placeholder="Например: 6" style="max-width:200px"
+          <input id="admFindId" placeholder="Например: PP-7F3K9" style="max-width:200px"
                  onkeydown="if(event.key==='Enter')admFindUser()">
           <button class="btn small" onclick="admFindUser()">Найти</button>
         </div>
@@ -1263,18 +1284,17 @@ function renderAdmTab(){
       <h3>Пользователи (${users.length})</h3>
       <div class="table-wrap" style="margin-top:10px">
         <table class="tbl">
-          <tr><th>ID</th><th>Имя</th><th>Баланс</th><th>Роль</th><th>Зарегистрирован</th><th></th></tr>
+          <tr><th>КОД</th><th>Имя</th><th>Баланс</th><th>Роль</th><th>Зарегистрирован</th><th></th></tr>
           ${users.length? users.map(u=>`
             <tr>
-              <td><b>${padId(u.id||0)}</b></td>
+              <td><b>${userCode(u)}</b></td>
               <td>${namePlate(u.uid, u.name)}${u.email? '<div class="muted small">'+esc(u.email)+'</div>':''}</td>
               <td class="price">${fmt(u.balance)} ₽</td>
               <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
               <td class="muted small">${u.createdAt? timeStr(u.createdAt):'—'}</td>
               <td style="white-space:nowrap">
-                <button class="btn small ghost" onclick="gotoTopUp(${Number(u.id||0)})">Начислить</button>
-                <button class="btn small ghost" onclick="openSetId('${u.uid}', ${Number(u.id||0)}, '${esc(u.name).replace(/'/g,'&#39;')}')">Задать ID</button>
-              </td>
+                <button class="btn small ghost" onclick="gotoTopUp('${userCode(u)}')">Начислить</button>
+                </td>
             </tr>`).join('') : '<tr><td colspan="6" class="locked-box">Пользователей пока нет</td></tr>'}
         </table>
       </div>
@@ -1329,7 +1349,7 @@ function drawAdmFound(){
       <div class="row" style="justify-content:space-between;gap:10px">
         <div>
           <b style="font-size:17px">${esc(u.name||'?')}${whoTag(u.name, u.uid)}</b>
-          <div class="muted small">ID: ${padId(u.id||0)} · Роль: ${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</div>
+          <div class="muted small">Код: ${userCode(u)} · Роль: ${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</div>
           <div class="muted small">Баланс сейчас: <b style="color:var(--text)">${fmt(u.balance)} ₽</b></div>
         </div>
       </div>
@@ -1349,7 +1369,7 @@ async function admDoTopUp(){
   try{
     await db.ref('users/'+u.uid+'/balance').transaction(b=>(b||0)+amount);
     await pushNotif(u.uid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
-    log('Начисление', fmt(amount)+' ₽ пользователю '+(u.name||'?')+' (ID '+padId(u.id||0)+')');
+    log('Начисление', fmt(amount)+' ₽ пользователю '+(u.name||'?')+' ('+userCode(u)+')');
     toast('Зачислено '+fmt(amount)+' ₽ — '+(u.name||'?'));
     admFoundUser = findUserBySiteId(u.id) || {...u, balance:(Number(u.balance||0)+amount)};
     drawAdmFound();
