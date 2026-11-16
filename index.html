@@ -109,8 +109,6 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .chip{padding:8px 16px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted);font-size:13px;font-weight:600;transition:all .2s}
 .chip:hover{color:var(--text);border-color:var(--accent)}
 .chip.active{background:linear-gradient(135deg,var(--accent),var(--accent-dark));border-color:transparent;color:#fff;box-shadow:var(--glow)}
-.id-chip{padding:6px 12px;border-radius:999px;background:var(--card2);border:1px solid var(--border);color:var(--accent2);font-size:12px;font-weight:700;transition:all .2s;cursor:pointer}
-.id-chip:hover{border-color:var(--accent);box-shadow:var(--glow);color:#fff}
 .lots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
 .lot-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;cursor:pointer;transition:transform .15s,border-color .2s,box-shadow .2s;display:flex;flex-direction:column;gap:10px}
 .lot-card:hover{transform:translateY(-3px);border-color:var(--accent);box-shadow:var(--glow)}
@@ -150,10 +148,6 @@ nav.main-nav a.active{color:#fff;background:linear-gradient(135deg,rgba(139,92,2
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .lot-img-big{width:100%;max-height:380px;object-fit:cover;border-radius:12px;margin:12px 0;background:var(--bg2)}
 .img-preview{width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-top:10px;background:var(--bg2)}
-table.tbl{width:100%;border-collapse:collapse;font-size:14px}
-table.tbl th{color:var(--muted);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:9px 10px;border-bottom:1px solid var(--border)}
-table.tbl td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
-.table-wrap{overflow-x:auto}
 .log-row{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
 .log-row .who{font-weight:700;color:var(--accent2)}
 .notif-row{padding:12px 14px;border-bottom:1px solid var(--border);font-size:14px}
@@ -190,7 +184,6 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
   .games-grid{grid-template-columns:1fr}
   .msg .bubble{max-width:86%}
   .modal{padding:18px}
-  table.tbl{font-size:13px}
   .profile-head{flex-direction:column;align-items:flex-start}
   main{padding:16px 12px 50px}
   /* На телефоне: чат сверху, список диалогов под ним */
@@ -243,7 +236,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.5 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.7 Space</div>
   </div>
 </footer>
 
@@ -253,11 +246,9 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v4.5: СAMОВОССТАНОВЛЕНИЕ ПРОФИЛЕЙ. Если при клике на имя
-   профиля нет в базе (её потери больше не страшны), сайт создаёт
-   его заново — имя и аватар берутся из ссылки, ID присваивается
-   автоматически. После восстановления профиль виден всем,
-   пополнение и логи работают как обычно. Всё из v4.4 сохранено.
+   v4.7: восстановление профилей показывает ТОЧНЫЙ КОД ОШИБКИ
+   Firebase прямо на странице и в консоли (F12), с кнопкой
+   «Попробовать снова» — без вечного цикла. Всё из v4.6 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -280,6 +271,7 @@ const db = firebase.database();
 function listen(path, cb){
   const ref = db.ref(path);
   ref.on('value', cb, err=>{
+    console.error('[PayPlay] База, путь '+path+':', err);
     try{ toast('База: '+path+' — '+(err&&err.code? err.code:'ошибка доступа'), true); }catch(_){}
   });
   return ()=>{ try{ ref.off('value', cb); }catch(_){} };
@@ -310,11 +302,6 @@ const isOwnerNick = name => (name||'')===OWNER_NICK;
 const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>' : '';
 function isMobile(){ return window.innerWidth <= 820; }
 
-/* Кликабельное имя пользователя.
-   Имя и аватар передаются в ссылке — по ним профиль
-   восстанавливается, если в базе его нет.
-   event.stopPropagation() — чтобы клик по имени не срабатывал
-   как клик по родительской карточке. */
 function userLink(uid, name, photo){
   if(!uid) return esc(name||'?');
   let href = '#user?id='+uid;
@@ -390,14 +377,20 @@ async function doRegister(){
     });
     toast('Добро пожаловать в Pay Play! Ваш ID: '+padId(uid));
     location.hash='home';
-  }catch(e){ $('authErr').textContent = String(e.message||e).replace('Firebase: ',''); }
+  }catch(e){
+    console.error('[PayPlay] Регистрация:', e);
+    $('authErr').textContent = String(e.message||e).replace('Firebase: ','');
+  }
 }
 async function doLogin(){
   try{
     await auth.signInWithEmailAndPassword($('authEmail').value.trim(), $('authPass').value);
     toast('Вы вошли!');
     location.hash='home';
-  }catch(e){ $('authErr').textContent = String(e.message||e).replace('Firebase: ',''); }
+  }catch(e){
+    console.error('[PayPlay] Вход:', e);
+    $('authErr').textContent = String(e.message||e).replace('Firebase: ','');
+  }
 }
 function doLogout(){ auth.signOut(); location.hash='home'; }
 
@@ -431,6 +424,7 @@ auth.onAuthStateChanged(user=>{
       }
       updateHeader(); render();
     }, err=>{
+      console.error('[PayPlay] Профиль '+me.uid+':', err);
       try{ toast('Профиль: '+(err&&err.code? err.code:'ошибка доступа'), true); }catch(_){}
     });
     watchBell(); watchDm();
@@ -537,7 +531,6 @@ listen('users', snap=>{
     if(snap && snap.forEach) snap.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
     arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
     window._users = arr;
-    refreshAdminLive();
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='user') renderUserPage();
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
@@ -972,7 +965,10 @@ async function sendDmMsg(){
     if(otherUid && (meta.ids||{})[otherUid]===undefined) updates['ids/'+otherUid] = 0;
     await db.ref('dmChats/'+key+'/meta').update(updates);
     if(otherUid) await db.ref('dmChats/'+key+'/meta/unread/'+otherUid).transaction(v=>(v||0)+1);
-  }catch(e){ toast('Не отправилось: '+e.message, true); }
+  }catch(e){
+    console.error('[PayPlay] Отправка сообщения:', e);
+    toast('Не отправилось: '+((e&&e.code)||e.message||'?'), true);
+  }
 }
 async function dmStartById(){
   if(!me) return;
@@ -1013,14 +1009,22 @@ function dmWriteSellerByLot(lotId){
 }
 
 /* ===================== ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
-   Страница #user?id=... Если профиля нет в базе — сайт сам
-   восстанавливает его по имени и аватару из ссылки. Баланс и
-   пополнение — только администрации. */
+   Страница #user?id=... При отсутствии профиля сайт пробует
+   восстановить его. При ошибке показывает ТОЧНЫЙ код ошибки
+   Firebase на странице и пишет подробности в консоль (F12).
+   Баланс и пополнение — только администрации. */
 let curUserUid = null;
+let lastRecoveryError = null;
 const recoveringUids = new Set();
+const recoveryFailed = new Set();
 function viewUserPage(){
   const qs = new URLSearchParams(location.hash.split('?')[1]||'');
   curUserUid = qs.get('id')||null;
+  renderUserPage();
+}
+function retryRecover(uid){
+  recoveryFailed.delete(uid);
+  lastRecoveryError = null;
   renderUserPage();
 }
 function renderUserPage(){
@@ -1030,14 +1034,28 @@ function renderUserPage(){
   if(!window._users){ app.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
   const u = window._users.find(x=>x.uid===curUserUid);
   if(!u){
-    /* Профиль потерян — восстанавливаем по данным из ссылки */
+    if(recoveryFailed.has(curUserUid)){
+      app.innerHTML = `
+        <div class="card">
+          <b>Не удалось восстановить профиль.</b>
+          <p class="muted small" style="margin-top:8px">Точный код ошибки Firebase:</p>
+          <div class="notice" style="font-family:monospace;user-select:all">${esc(lastRecoveryError||'неизвестно')}</div>
+          <p class="muted small" style="margin-top:10px">Подробность также записана в консоль: нажми F12 → вкладка «Console».<br>
+          Если код <b>permission_denied</b> — база запрещает запись: проверь правила (консоль Firebase → База данных → Правила).<br>
+          Если код <b>unavailable</b> — нет связи с Firebase, проверь интернет.</p>
+          <div class="row" style="margin-top:12px">
+            <button class="btn small" onclick="retryRecover('${curUserUid}')">Попробовать снова</button>
+          </div>
+        </div>`;
+      return;
+    }
     const qs = new URLSearchParams(location.hash.split('?')[1]||'');
     const nParam = qs.get('n')||'';
     const pParam = qs.get('p')||'';
     if(nParam && !recoveringUids.has(curUserUid)){
       recoveringUids.add(curUserUid);
       db.ref('users/'+curUserUid).get().then(s=>{
-        if(s.exists()) return renderUserPage();
+        if(s.exists()){ recoveringUids.delete(curUserUid); return renderUserPage(); }
         const isOwner = isOwnerNick(nParam);
         return db.ref('users/'+curUserUid).set({
           name:nParam, email:'', role: isOwner?'owner':'user', verified: isOwner,
@@ -1047,16 +1065,21 @@ function renderUserPage(){
           await db.ref('users/'+curUserUid+'/id').set(id);
           log('Восстановлен профиль', nParam+' (ID '+padId(id)+')');
         });
-      }).then(()=>{ recoveringUids.delete(curUserUid); })
-        .catch(e=>{
-          recoveringUids.delete(curUserUid);
-          try{ toast('Не удалось восстановить профиль: '+e.message, true); }catch(_){}
-          renderUserPage();
-        });
+      }).then(()=>{
+        recoveringUids.delete(curUserUid);
+        renderUserPage();
+      }).catch(e=>{
+        recoveringUids.delete(curUserUid);
+        recoveryFailed.add(curUserUid);
+        lastRecoveryError = (e&&e.code? e.code+' ' : '')+(e&&e.message? e.message : String(e||'?'));
+        console.error('[PayPlay] Восстановление профиля '+curUserUid+':', e);
+        try{ toast('Восстановление: '+lastRecoveryError, true); }catch(_){}
+        renderUserPage();
+      });
       app.innerHTML = '<div class="locked-box">Профиль не найден в базе — восстанавливаем его автоматически… Подожди пару секунд, страница обновится сама.</div>';
       return;
     }
-    app.innerHTML = '<div class="card">Профиль не найден'+(recoveringUids.has(curUserUid)?' — восстанавливаем…':' или пользователь ещё не заходил на сайт.')+'</div>';
+    app.innerHTML = '<div class="card">Профиль не найден или пользователь ещё не заходил на сайт.</div>';
     return;
   }
   const adm = isOwnerAdmin();
@@ -1164,7 +1187,10 @@ async function submitLot(){
     log('Выставлен лот', '«'+title+'» за '+fmt(price)+' ₽');
     toast('Лот опубликован!');
     location.hash='profile';
-  }catch(e){ $('sellErr').textContent = e.message; }
+  }catch(e){
+    console.error('[PayPlay] Выставление лота:', e);
+    $('sellErr').textContent = e.message;
+  }
 }
 
 /* ===================== ПРОФИЛЬ ===================== */
@@ -1249,7 +1275,10 @@ async function saveProfile(){
     });
     closeModal();
     toast('Профиль обновлён');
-  }catch(e){ $('edErr').textContent = e.message; }
+  }catch(e){
+    console.error('[PayPlay] Сохранение профиля:', e);
+    $('edErr').textContent = e.message;
+  }
 }
 
 /* ===================== АДМИН-ПАНЕЛЬ (только логи) ===================== */
