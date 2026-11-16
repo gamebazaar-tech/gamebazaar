@@ -236,7 +236,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.7 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v4.8 Space</div>
   </div>
 </footer>
 
@@ -246,9 +246,12 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v4.7: восстановление профилей показывает ТОЧНЫЙ КОД ОШИБКИ
-   Firebase прямо на странице и в консоли (F12), с кнопкой
-   «Попробовать снова» — без вечного цикла. Всё из v4.6 сохранено.
+   v4.8: ССЫЛКИ НА ПРОФИЛИ СТАЛИ КОРОТКИМИ. Раньше в адрес ссылки
+   пряталось имя и аватарка — если аватарка была длинной (base64
+   или огромный URL), ссылка разрасталась и браузер висел с
+   ошибкой «страница не отвечает». Теперь в адресе только чистый
+   uid (#user?id=...), а имя и аватар для восстановления профиля
+   передаются внутри сайта. Всё из v4.7 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -302,12 +305,30 @@ const isOwnerNick = name => (name||'')===OWNER_NICK;
 const ownerTag = name => isOwnerNick(name) ? ' <span class="badge owner-badge">Владелец</span><span class="verified">✓</span>' : '';
 function isMobile(){ return window.innerWidth <= 820; }
 
+/* Внутренний кэш имён и аватарок: заполняется каждый раз, когда
+   мы встречаем пользователя (чат, лот, диалог, логи). По нему
+   сайт восстанавливает потерянный профиль БЕЗ данных в адресе
+   ссылки — адрес остаётся коротким и браузер не виснет. */
+const userCache = {};
+function cacheUser(uid, name, photo){
+  if(!uid) return;
+  if(!userCache[uid]) userCache[uid] = {};
+  if(name && String(name).length<=24) userCache[uid].name = name;
+  if(photo && String(photo).length<=400) userCache[uid].photo = photo;
+}
+
+/* Кликабельное имя. В адресе — только чистый uid, никаких длинных
+   параметров. event.stopPropagation() — чтобы клик по имени не
+   срабатывал как клик по родительской карточке. */
 function userLink(uid, name, photo){
   if(!uid) return esc(name||'?');
-  let href = '#user?id='+uid;
-  if(name) href += '&n='+encodeURIComponent(name);
-  if(photo) href += '&p='+encodeURIComponent(photo);
-  return '<a class="user-link" href="'+href+'" onclick="event.stopPropagation()">'+esc(name||'Пользователь')+'</a>';
+  cacheUser(uid, name, photo);
+  const safeUid = String(uid).replace(/[^A-Za-z0-9_\-]/g,'');
+  return '<a class="user-link" href="javascript:void(0)" onclick="event.stopPropagation();goUser(\''+safeUid+'\')">'+esc(name||'Пользователь')+'</a>';
+}
+function goUser(uid){
+  if(!uid) return;
+  location.hash = 'user?id='+uid;
 }
 function preserveInput(id){
   const el = document.getElementById(id);
@@ -815,7 +836,7 @@ function openDmChat(key){
         const arr=[];
         if(snap && snap.forEach) snap.forEach(m=>{
           const v = m.val();
-          if(v && v.text) arr.push({key:m.key, ...v});
+          if(v && v.text){ cacheUser(v.fromUid, v.fromName, v.fromPhoto); arr.push({key:m.key, ...v}); }
         });
         dmSources[p] = arr;
         dmRebuildMessages(key);
@@ -834,7 +855,12 @@ function watchDm(){
         snap.forEach(c=>{
           const node = c.val()||{};
           const m = node.meta || node;
-          if(m.participants && m.participants[me.uid]) out[c.key]=m;
+          if(m.participants && m.participants[me.uid]){
+            const otherUid = Object.keys(m.participants||{}).find(u=>u!==me.uid);
+            const ou = (m.users||{})[otherUid]||{};
+            cacheUser(otherUid, ou.name, ou.photo);
+            out[c.key]=m;
+          }
         });
       }
       dmChatsCache = out;
@@ -885,6 +911,7 @@ function renderDmList(){
   box.innerHTML = chats.map(c=>{
     const otherUid = Object.keys(c.participants||{}).find(u=>u!==me.uid) || '?';
     const u = (c.users||{})[otherUid]||{};
+    cacheUser(otherUid, u.name, u.photo);
     const unread = Number((c.unread||{})[me.uid]||0);
     const sel = c.key===dmOpenChatId ? ' sel':'';
     return `
@@ -913,6 +940,7 @@ function drawDmChat(){
   const meta = (dmChatsCache||{})[key]||{};
   const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid) || '?';
   const u = (meta.users||{})[otherUid]||{};
+  cacheUser(otherUid, u.name, u.photo);
   const html = dmMsgs.map(m=>{
     const mineMsg = m.fromUid===me.uid;
     const ava = m.fromPhoto ? '<img src="'+esc(m.fromPhoto)+'" alt="">' : esc((m.fromName||'?')[0].toUpperCase());
@@ -985,6 +1013,7 @@ async function dmStartById(){
   }catch(e){ toast('Ошибка: '+e.message, true); }
 }
 async function startDmChat(uid, name, photo, siteId){
+  cacheUser(uid, name, photo);
   const key = dmKeyFor(me.uid, uid);
   const metaRef = db.ref('dmChats/'+key+'/meta');
   const snap = await metaRef.get();
@@ -1005,21 +1034,23 @@ function dmWriteSellerByLot(lotId){
   const l = (window._lots||[]).find(x=>x.id===lotId);
   if(!l) return;
   if(l.ownerUid===me.uid) return toast('Это ваш собственный лот 🙂', true);
+  cacheUser(l.ownerUid, l.ownerName, null);
   startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0).then(()=>{ location.hash='inbox'; });
 }
 
 /* ===================== ПРОФИЛЬ ДРУГОГО ПОЛЬЗОВАТЕЛЯ =====================
-   Страница #user?id=... При отсутствии профиля сайт пробует
-   восстановить его. При ошибке показывает ТОЧНЫЙ код ошибки
-   Firebase на странице и пишет подробности в консоль (F12).
-   Баланс и пополнение — только администрации. */
+   Страница #user?id=... — в адресе ТОЛЬКО чистый uid, никаких
+   длинных параметров (именно длинные аватарки-ссылки в адресе
+   заставляли браузер виснуть). Имя и аватар для восстановления
+   берутся из внутреннего кэша сайта. Баланс и пополнение —
+   только администрации. */
 let curUserUid = null;
 let lastRecoveryError = null;
 const recoveringUids = new Set();
 const recoveryFailed = new Set();
 function viewUserPage(){
-  const qs = new URLSearchParams(location.hash.split('?')[1]||'');
-  curUserUid = qs.get('id')||null;
+  curUserUid = new URLSearchParams(location.hash.split('?')[1]||'').get('id')||null;
+  if(curUserUid) curUserUid = String(curUserUid).replace(/[^A-Za-z0-9_\-]/g,'');
   renderUserPage();
 }
 function retryRecover(uid){
@@ -1040,30 +1071,29 @@ function renderUserPage(){
           <b>Не удалось восстановить профиль.</b>
           <p class="muted small" style="margin-top:8px">Точный код ошибки Firebase:</p>
           <div class="notice" style="font-family:monospace;user-select:all">${esc(lastRecoveryError||'неизвестно')}</div>
-          <p class="muted small" style="margin-top:10px">Подробность также записана в консоль: нажми F12 → вкладка «Console».<br>
-          Если код <b>permission_denied</b> — база запрещает запись: проверь правила (консоль Firebase → База данных → Правила).<br>
-          Если код <b>unavailable</b> — нет связи с Firebase, проверь интернет.</p>
+          <p class="muted small" style="margin-top:10px">Если код <b>permission_denied</b> — база запрещает запись (проверь правила в консоли Firebase). Если <b>unavailable</b> — нет связи с Firebase.</p>
           <div class="row" style="margin-top:12px">
             <button class="btn small" onclick="retryRecover('${curUserUid}')">Попробовать снова</button>
           </div>
         </div>`;
       return;
     }
-    const qs = new URLSearchParams(location.hash.split('?')[1]||'');
-    const nParam = qs.get('n')||'';
-    const pParam = qs.get('p')||'';
-    if(nParam && !recoveringUids.has(curUserUid)){
+    /* Имя и аватар берём из внутреннего кэша сайта (чат, лот, логи) */
+    const cached = userCache[curUserUid]||{};
+    const recName = cached.name||'';
+    const recPhoto = cached.photo||'';
+    if(recName && !recoveringUids.has(curUserUid)){
       recoveringUids.add(curUserUid);
       db.ref('users/'+curUserUid).get().then(s=>{
         if(s.exists()){ recoveringUids.delete(curUserUid); return renderUserPage(); }
-        const isOwner = isOwnerNick(nParam);
+        const isOwner = isOwnerNick(recName);
         return db.ref('users/'+curUserUid).set({
-          name:nParam, email:'', role: isOwner?'owner':'user', verified: isOwner,
-          id:null, balance:0, photo: pParam||null, createdAt:Date.now()
+          name:recName, email:'', role: isOwner?'owner':'user', verified: isOwner,
+          id:null, balance:0, photo: recPhoto||null, createdAt:Date.now()
         }).then(async ()=>{
-          const id = await assignUserId(nParam);
+          const id = await assignUserId(recName);
           await db.ref('users/'+curUserUid+'/id').set(id);
-          log('Восстановлен профиль', nParam+' (ID '+padId(id)+')');
+          log('Восстановлен профиль', recName+' (ID '+padId(id)+')');
         });
       }).then(()=>{
         recoveringUids.delete(curUserUid);
@@ -1082,6 +1112,7 @@ function renderUserPage(){
     app.innerHTML = '<div class="card">Профиль не найден или пользователь ещё не заходил на сайт.</div>';
     return;
   }
+  cacheUser(curUserUid, u.name, u.photo);
   const adm = isOwnerAdmin();
   const mine = curUserUid===me.uid;
   app.innerHTML = `
@@ -1136,7 +1167,8 @@ function dmWriteByUid(uid){
   if(!me) return toast('Войдите, чтобы писать', true);
   if(uid===me.uid) return toast('Это ваш собственный профиль 🙂', true);
   const u = (window._users||[]).find(x=>x.uid===uid);
-  startDmChat(uid, u? u.name:'Пользователь', u? (u.photo||null):null, u? (u.id||0):0).then(()=>{ location.hash='inbox'; });
+  const cu = userCache[uid]||{};
+  startDmChat(uid, (u&&u.name)||(cu.name||'Пользователь'), (u&&u.photo)||(cu.photo||null), u? (u.id||0):0).then(()=>{ location.hash='inbox'; });
 }
 
 /* ===================== ПРОДАТЬ ===================== */
@@ -1178,6 +1210,7 @@ async function submitLot(){
   if(title.length<3) return $('sellErr').textContent='Название — минимум 3 символа';
   if(desc.length<5) return $('sellErr').textContent='Добавьте описание лота';
   if(!price || price<=0) return $('sellErr').textContent='Укажите цену больше нуля';
+  if(img.length>400) return $('sellErr').textContent='Ссылка на картинку слишком длинная — используй обычную короткую ссылку на изображение';
   try{
     await db.ref('lots').push({
       game, category, title, desc, price,
@@ -1256,7 +1289,7 @@ function editProfile(){
   modal(`
     <h3>Изменить профиль</h3>
     <label>Никнейм</label><input id="edName" maxlength="24" value="${esc(prof.name)}">
-    <label>Ссылка на аватар (необязательно)</label><input id="edPhoto" placeholder="https://... прямая ссылка на картинку" value="${esc(prof.photo||'')}">
+    <label>Ссылка на аватар (необязательно, до 400 символов)</label><input id="edPhoto" placeholder="https://... прямая ссылка на картинку" value="${esc(prof.photo||'')}">
     <div class="err" id="edErr"></div>
     <div class="row" style="justify-content:flex-end;margin-top:14px">
       <button class="btn ghost" onclick="closeModal()">Отмена</button>
@@ -1267,6 +1300,7 @@ async function saveProfile(){
   const name = $('edName').value.trim();
   const photo = $('edPhoto').value.trim() || null;
   if(name.length<2) return $('edErr').textContent='Никнейм — минимум 2 символа';
+  if(photo && photo.length>400) return $('edErr').textContent='Ссылка на аватар слишком длинная — используй обычную короткую ссылку';
   try{
     const updates = {name, photo};
     await db.ref('users/'+me.uid).update(updates);
