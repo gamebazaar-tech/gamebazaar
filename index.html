@@ -207,9 +207,112 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
   .lots-grid{grid-template-columns:1fr}
   .logo span.word{display:none}
 }
+
+/* =====================================================================
+   КОСМИЧЕСКИЙ РЕЖИМ Pay Play — Space Edition
+   Туманности, звёздное небо с мерцанием и дрейфом, падающие звёзды.
+   Слой чисто визуальный: ничего не перекрывает, клики не ловит.
+   ===================================================================== */
+html{background:#04030c}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-3;pointer-events:none;
+  background:
+    radial-gradient(ellipse 55% 45% at 12% -5%, rgba(109,63,214,.45), transparent 62%),
+    radial-gradient(ellipse 45% 38% at 88% 4%, rgba(217,70,239,.28), transparent 65%),
+    radial-gradient(ellipse 60% 45% at 82% 96%, rgba(37,99,235,.30), transparent 65%),
+    radial-gradient(ellipse 50% 40% at 6% 94%, rgba(124,58,237,.32), transparent 60%),
+    radial-gradient(ellipse 70% 55% at 45% 38%, rgba(76,29,149,.35), transparent 75%),
+    linear-gradient(180deg,#04030c 0%,#090620 48%,#06041a 100%);
+}
+/* Звёзды: мелкий слой, мерцание + медленный дрейф */
+body::after{
+  content:'';position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background-image:
+    radial-gradient(1.4px 1.4px at 22px 34px, #fff, transparent),
+    radial-gradient(1px 1px at 130px 90px, rgba(255,255,255,.8), transparent),
+    radial-gradient(1.2px 1.2px at 210px 160px, rgba(167,139,250,.95), transparent),
+    radial-gradient(1px 1px at 70px 190px, #fff, transparent),
+    radial-gradient(1.6px 1.6px at 300px 40px, rgba(255,255,255,.9), transparent),
+    radial-gradient(1px 1px at 260px 220px, rgba(167,139,250,.75), transparent),
+    radial-gradient(1.2px 1.2px at 420px 130px, #fff, transparent),
+    radial-gradient(1px 1px at 380px 260px, rgba(196,181,253,.7), transparent),
+    radial-gradient(1.3px 1.3px at 90px 250px, #fff, transparent),
+    radial-gradient(1px 1px at 340px 200px, rgba(255,255,255,.55), transparent);
+  background-size:520px 340px;
+  opacity:.7;
+  animation:twinkle 7s ease-in-out infinite alternate, stars-drift 220s linear infinite;
+}
+/* Второй слой звёзд: крупнее и редче, свой темп дрейфа */
+#spaceFx{
+  position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;
+  background-image:
+    radial-gradient(2.4px 2.4px at 15% 22%, rgba(255,255,255,.95), transparent),
+    radial-gradient(2px 2px at 72% 12%, rgba(196,181,253,.85), transparent),
+    radial-gradient(2.2px 2.2px at 48% 58%, #fff, transparent),
+    radial-gradient(1.8px 1.8px at 85% 74%, rgba(255,255,255,.8), transparent),
+    radial-gradient(2px 2px at 28% 82%, rgba(167,139,250,.8), transparent),
+    radial-gradient(1.6px 1.6px at 60% 34%, rgba(255,255,255,.7), transparent);
+  background-size:780px 620px;
+  opacity:.9;
+  animation:stars-drift2 340s linear infinite;
+}
+/* Тусклое свечение планеты в углу */
+#spaceFx::marker{content:none}
+@keyframes stars-drift{
+  from{background-position:0 0}
+  to{background-position:-520px 340px}
+}
+@keyframes stars-drift2{
+  from{background-position:0 0}
+  to{background-position:780px -620px}
+}
+/* Падающие звёзды */
+#spaceFx::before,#spaceFx::after{
+  content:'';position:absolute;width:150px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,#fff,rgba(167,139,250,.9) 40%,transparent);
+  box-shadow:0 0 12px rgba(167,139,250,.8);
+  opacity:0;transform:rotate(-32deg);
+}
+#spaceFx::before{
+  top:8%;left:-160px;
+  animation:shooting-star 11s linear infinite 2s;
+}
+#spaceFx::after{
+  top:22%;left:-160px;width:110px;
+  animation:shooting-star 15s linear infinite 7.5s;
+}
+@keyframes shooting-star{
+  0%{transform:translateX(0) translateY(0) rotate(-32deg);opacity:0}
+  1.5%{opacity:1}
+  7%{transform:translateX(118vw) translateY(62vh) rotate(-32deg);opacity:0}
+  100%{transform:translateX(118vw) translateY(62vh) rotate(-32deg);opacity:0}
+}
+/* Космические детали интерфейса: сияющие рамки и шапка */
+header{
+  background:rgba(6,4,16,.72);
+  border-bottom:1px solid rgba(139,92,246,.35);
+}
+.banner{
+  border-color:rgba(167,139,250,.5);
+  box-shadow:var(--shadow),0 0 60px rgba(139,92,246,.28);
+}
+.banner h1{
+  text-shadow:0 0 18px rgba(167,139,250,.9),0 0 60px rgba(139,92,246,.55);
+}
+.card,.game-card,.lot-card,.modal,.stat{
+  box-shadow:0 0 0 rgba(0,0,0,0),0 0 24px rgba(76,29,149,.18) inset;
+}
+.balance-big{
+  box-shadow:0 0 34px rgba(139,92,246,.35),var(--glow);
+}
+@media (prefers-reduced-motion:reduce){
+  body::after,#spaceFx{animation:none}
+  #spaceFx::before,#spaceFx::after{animation:none;opacity:0}
+}
 </style>
 </head>
 <body>
+<div id="spaceFx"></div>
 <header>
   <div class="head-in">
     <a class="logo" href="#home"><span class="logo-ico">P</span><span class="word">Pay<b>Play</b></span></a>
@@ -248,7 +351,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.3 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.4 Space Edition</div>
   </div>
 </footer>
 
@@ -1166,27 +1269,8 @@ function viewProfile(){
       </div>
       <div class="muted small" style="margin-top:10px">Пополнение идёт через нашего ВК-бота: нажмите кнопку, и откроется чат с ботом, где вам дадут инструкцию.</div>
     </div>
-    <div class="tabs" style="margin-top:18px">
-      <button class="tab ${profTab==='lots'?'active':''}" onclick="setProfTab('lots')">Мои лоты</button>
-      <button class="tab ${profTab==='refund'?'active':''}" onclick="setProfTab('refund')">Возврат средств</button>
-    </div>
-    <div id="profTabBox"></div>`;
-  renderProfTab();
-}
-let profTab = 'lots';
-function setProfTab(t){ profTab=t; renderProfTab(); }
-function renderProfTab(){
-  const box = $('profTabBox'); if(!box) return;
-  if(profTab==='refund'){
-    box.innerHTML = `
-      <div class="card" style="text-align:center">
-        <h3>Возврат средств</h3>
-        <p class="muted" style="margin:10px 0 16px">Раздел пока в разработке. Не хотите ждать? Пишите в поддержку — нашему боту в ВК.</p>
-        <a class="btn" href="${VK_BOT_LINK}" target="_blank" rel="noopener">Написать в поддержку в ВК</a>
-      </div>`;
-    return;
-  }
-  box.innerHTML = '<div class="section-title">Мои лоты</div><div class="card" id="myLots"></div>';
+    <div class="section-title">Мои лоты</div>
+    <div class="card" id="myLots"></div>`;
   renderMyLots();
 }
 function editProfile(){
@@ -1236,7 +1320,6 @@ function viewAdmin(){
       <button class="tab ${admTab==='topup'?'active':''}" onclick="setAdmTab('topup')">Начисление</button>
       <button class="tab ${admTab==='lots'?'active':''}" onclick="setAdmTab('lots')">Лоты</button>
       <button class="tab ${admTab==='users'?'active':''}" onclick="setAdmTab('users')">Пользователи</button>
-      <button class="tab ${admTab==='refunds'?'active':''}" onclick="setAdmTab('refunds')">Возвраты</button>
       <button class="tab ${admTab==='logs'?'active':''}" onclick="setAdmTab('logs')">Логи</button>
     </div>
     <div id="admTabBox"></div>`;
@@ -1251,15 +1334,6 @@ function refreshAdminLive(){
 }
 function renderAdmTab(){
   const box = $('admTabBox'); if(!box || !isOwnerAdmin()) return;
-  if(admTab==='refunds'){
-    box.innerHTML = `
-      <div class="card" style="text-align:center">
-        <h3>Возвраты</h3>
-        <p class="muted" style="margin:10px 0 16px">Раздел пока в разработке. Заявки от пользователей принимаются в поддержку — боту в ВК.</p>
-        <a class="btn" href="${VK_BOT_LINK}" target="_blank" rel="noopener">Открыть бота поддержки в ВК</a>
-      </div>`;
-    return;
-  }
   if(admTab==='overview'){
     const users = window._users||[];
     const lots = window._lots||[];
