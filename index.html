@@ -1444,5 +1444,270 @@ async function saveSetId(uid){
 if(!location.hash) location.hash='home';
 render();
 </script>
+
+<script>
+/* ===================== ПОДДЕРЖКА (автономный блок, v1) ===================== */
+(function(){
+'use strict';
+var SUP_UID = 'support__payplay';
+
+/* --- безопасные обёртки над хелперами основного скрипта --- */
+function $g(id){ return document.getElementById(id); }
+function escL(s){
+  try{ return esc(s); }catch(e){
+    var d=document.createElement('div'); d.textContent=(s==null?'':String(s)); return d.innerHTML;
+  }
+}
+function tL(ts){
+  try{ return timeStr(ts); }catch(e){
+    if(!ts) return '';
+    var d=new Date(ts);
+    return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  }
+}
+function getDb(){ try{ return db; }catch(e){ return null; } }
+function getMe(){ try{ return me; }catch(e){ return null; } }
+function getProf(){ try{ return prof; }catch(e){ return null; } }
+function isAdm(){ try{ return !!isOwnerAdmin(); }catch(e){ return false; } }
+function curUid(){ try{ var u=firebase.auth().currentUser; return u? u.uid : null; }catch(e){ return null; } }
+function pad4(n){ n=String(n==null?0:n); while(n.length<4) n='0'+n; return n; }
+function usersArr(){ try{ return window._users||[]; }catch(e){ return []; } }
+function say(t,err){ try{ toast(t, err); }catch(e){} }
+
+/* --- стили --- */
+var CSS =
+  '#supFab{position:fixed;right:18px;bottom:18px;z-index:400;background:linear-gradient(135deg,var(--accent),#d946ef);color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:700;cursor:pointer;box-shadow:var(--glow);font-size:14px}'+
+  '#supFab:hover{filter:brightness(1.12)}'+
+  '#supFab.has-un::after{content:"";position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid #07060f}'+
+  '#supOv{position:fixed;inset:0;z-index:600;background:rgba(4,3,10,.75);display:none;align-items:center;justify-content:center;padding:16px}'+
+  '#supOv.open{display:flex}'+
+  '#supBox{width:100%;max-width:560px;height:min(620px,92vh);background:var(--card);border:1px solid var(--accent-dark);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}'+
+  '#supHead{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--card2)}'+
+  '#supHead b{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}'+
+  '.sup-x{background:none;color:var(--muted);font-size:20px;padding:2px 8px;border:none;cursor:pointer}'+
+  '#supFoot{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}'+
+  '#supInp{flex:1}'+
+  '#supBody.chat-wrap{max-height:none;flex:1;padding:12px 14px}'+
+  '.sup-hint{color:var(--muted);text-align:center;margin:auto;font-size:14px;padding:30px 10px}'+
+  '.sup-thread{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}'+
+  '.sup-thread:hover{background:var(--card2)}'+
+  '.sup-pill{font-size:11px;font-weight:700;color:#ff8fc7;white-space:nowrap}'+
+  '.sup-last{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}';
+try{
+  var st=document.createElement('style'); st.textContent=CSS; document.head.appendChild(st);
+}catch(e){}
+
+/* --- состояние --- */
+var supUnread = 0;
+var myWatchRef = null, myWatchCb = null;
+var threadRef = null, threadCb = null;
+var inboxRef = null, inboxCb = null;
+var curThread = null; /* {uid,name,siteId,admin} */
+
+function offVal(fn, ref){ if(fn && ref){ try{ ref.off('value', fn); }catch(e){} } }
+
+/* --- плавающая кнопка --- */
+var fab = document.createElement('button');
+fab.type = 'button';
+fab.id = 'supFab';
+fab.innerHTML = '💬 Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>';
+fab.onclick = openSup;
+document.body.appendChild(fab);
+
+/* --- окно (оверлей) --- */
+function buildOv(){
+  if($g('supOv')) return;
+  var ov = document.createElement('div');
+  ov.id = 'supOv';
+  ov.innerHTML =
+    '<div id="supBox">'+
+      '<div id="supHead"><b id="supTitle">Поддержка</b><button id="supX" class="sup-x" type="button">✕</button></div>'+
+      '<div id="supBody" class="chat-wrap"></div>'+
+      '<div id="supFoot"><input id="supInp" maxlength="500" placeholder="Сообщение…">'+
+      '<button id="supGo" class="btn small" type="button">Отправить</button></div>'+
+    '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', function(e){ if(e.target===ov) closeSup(); });
+  $g('supX').onclick = closeSup;
+  $g('supGo').onclick = sendSup;
+  $g('supInp').addEventListener('keydown', function(e){ if(e.key==='Enter') sendSup(); });
+}
+function closeSup(){
+  var ov=$g('supOv'); if(ov) ov.classList.remove('open');
+  if(threadRef){ offVal(threadCb, threadRef); threadRef=null; threadCb=null; }
+  if(inboxRef){ offVal(inboxCb, inboxRef); inboxRef=null; inboxCb=null; }
+  curThread=null;
+  injectSupRow();
+}
+
+/* --- чат с поддержкой (пользователь или админ смотрит обращение) --- */
+function showThread(uid, name, siteId, isAdminView){
+  buildOv();
+  if(threadRef){ offVal(threadCb, threadRef); threadRef=null; threadCb=null; }
+  if(inboxRef){ offVal(inboxCb, inboxRef); inboxRef=null; inboxCb=null; }
+  curThread = {uid:uid, name:name||'Пользователь', siteId:siteId||0, admin:!!isAdminView};
+  $g('supOv').classList.add('open');
+  $g('supFoot').style.display='flex';
+  $g('supTitle').innerHTML = isAdminView
+    ? escL(name)+' <span class="muted small">ID '+pad4(siteId)+'</span>'
+    : 'Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>';
+  var body = $g('supBody');
+  body.innerHTML = '<div class="sup-hint">Загрузка…</div>';
+  var d = getDb(); if(!d) return;
+  threadRef = d.ref('support/'+uid+'/msgs');
+  threadCb = function(s){
+    try{
+      if(!curThread || curThread.uid!==uid) return;
+      var arr=[];
+      if(s && s.forEach) s.forEach(function(x){ var v=x.val()||{}; if(v.text) arr.push(v); });
+      arr.sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+      body.innerHTML = arr.length ? arr.map(function(m){
+        var fromAdmin = m.from==='admin';
+        var mine = curThread.admin ? fromAdmin : !fromAdmin;
+        var who = mine ? 'Вы' : (fromAdmin ? 'Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>' : escL(curThread.name));
+        var ava = mine ? '🙂' : (fromAdmin ? '💬' : escL((curThread.name||'?').charAt(0).toUpperCase()));
+        return '<div class="msg'+(mine?' staff':'')+'">'+
+          '<div class="ava">'+ava+'</div>'+
+          '<div><div class="bubble">'+escL(m.text)+'</div>'+
+          '<div class="meta">'+who+' · '+tL(m.ts)+'</div></div></div>';
+      }).join('') : '<div class="sup-hint">'+(curThread.admin?'Обращение пока без сообщений':'Напишите ваш вопрос — ответ появится здесь')+'</div>';
+      body.scrollTop = body.scrollHeight;
+      if(!curThread.admin && arr.length){
+        var m2 = getMe();
+        if(m2){
+          var last = arr[arr.length-1].ts || Date.now();
+          if(Number(localStorage.getItem('pp_sup_seen_'+m2.uid)||0) < last){
+            localStorage.setItem('pp_sup_seen_'+m2.uid, String(last));
+            supUnread = 0; injectSupRow(); markFab();
+          }
+        }
+      }
+    }catch(e){ console.error('[Support] thread:', e); }
+  };
+  threadRef.on('value', threadCb);
+  setTimeout(function(){ var i=$g('supInp'); if(i) i.focus(); }, 60);
+}
+
+/* --- отправка --- */
+function sendSup(){
+  var inp = $g('supInp'); if(!inp) return;
+  var t = (inp.value||'').trim();
+  if(!t || !curThread) return;
+  var d = getDb(); if(!d) return;
+  inp.value='';
+  var msg = curThread.admin
+    ? {from:'admin', fromName:'Поддержка', text:t, ts:Date.now()}
+    : {from:'user', fromUid:curThread.uid, fromName:(getProf()&&getProf().name)||'?', text:t, ts:Date.now()};
+  d.ref('support/'+curThread.uid+'/msgs').push(msg);
+}
+
+/* --- входящие обращения (для админа) --- */
+function showInbox(){
+  buildOv();
+  if(threadRef){ offVal(threadCb, threadRef); threadRef=null; threadCb=null; }
+  if(inboxRef){ offVal(inboxCb, inboxRef); inboxRef=null; inboxCb=null; }
+  curThread = null;
+  $g('supOv').classList.add('open');
+  $g('supFoot').style.display='none';
+  $g('supTitle').textContent = 'Поддержка — обращения';
+  var body = $g('supBody');
+  body.innerHTML = '<div class="sup-hint">Загрузка…</div>';
+  var d = getDb(); if(!d) return;
+  inboxRef = d.ref('support');
+  inboxCb = function(s){
+    try{
+      if(curThread) return;
+      var rows=[];
+      if(s && s.forEach) s.forEach(function(t){
+        var uid=t.key, last=null;
+        if(t.forEach) t.forEach(function(m){ last = m.val()||{}; });
+        var u = usersArr().find(function(x){ return x.uid===uid; }) || {};
+        rows.push({uid:uid, name:u.name||'Пользователь', siteId:u.id||0, last:last, needs:!!(last && last.from==='user')});
+      });
+      rows.sort(function(a,b){ return ((b.last&&b.last.ts)||0)-((a.last&&a.last.ts)||0); });
+      body.innerHTML = rows.length ? '' : '<div class="sup-hint">Обращений пока нет — как появятся, увидишь здесь</div>';
+      rows.forEach(function(r){
+        var el = document.createElement('div');
+        el.className='sup-thread';
+        el.innerHTML = '<div style="flex:1;min-width:0"><b>'+escL(r.name)+'</b> <span class="muted small">ID '+pad4(r.siteId)+'</span>'+
+          (r.needs?' <span class="sup-pill">● ждёт ответа</span>':'')+
+          '<div class="sup-last">'+(r.last ? ((r.last.from==='admin'?'Вы: ':'')+escL(r.last.text)) : '')+'</div></div>';
+        el.onclick = function(){ showThread(r.uid, r.name, r.siteId, true); };
+        body.appendChild(el);
+      });
+    }catch(e){ console.error('[Support] inbox:', e); }
+  };
+  inboxRef.on('value', inboxCb);
+}
+
+/* --- открытие: админу — список обращений, юзеру — его чат --- */
+function openSup(){
+  if(!curUid()){ say('Сначала войдите на сайт', true); return; }
+  if(isAdm()) showInbox();
+  else showThread(curUid(), (getProf()&&getProf().name)||'Пользователь', (getProf()&&getProf().id)||0, false);
+}
+
+/* --- строка «Поддержка» в списке чатов --- */
+function injectSupRow(){
+  try{
+    var box = $g('dmList');
+    if(!box || !getMe()) return;
+    var old = $g('supDmRow'); if(old) old.remove();
+    var div = document.createElement('div');
+    div.className = 'dm-item';
+    div.id = 'supDmRow';
+    div.innerHTML =
+      '<div class="dm-ava">💬</div>'+
+      '<div class="dm-info">'+
+        '<div class="dm-name">Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span></div>'+
+        '<div class="dm-preview">Помощь по сайту и заказам</div>'+
+      '</div>'+
+      (supUnread ? '<div class="dm-right"><div class="dm-badge">'+(supUnread>99?'99+':supUnread)+'</div></div>' : '');
+    div.onclick = openSup;
+    box.insertBefore(div, box.firstChild);
+  }catch(e){ console.error('[Support] row:', e); }
+}
+
+/* --- слежка за своими сообщениями поддержки (для счётчика непрочитанных) --- */
+function watchMine(){
+  try{
+    var m = getMe(), d = getDb();
+    if(myWatchRef){ offVal(myWatchCb, myWatchRef); myWatchRef=null; myWatchCb=null; }
+    supUnread = 0; markFab();
+    if(!m || !d) return;
+    myWatchRef = d.ref('support/'+m.uid+'/msgs');
+    myWatchCb = function(s){
+      try{
+        supUnread = 0;
+        var seen = Number(localStorage.getItem('pp_sup_seen_'+m.uid)||0);
+        if(s && s.forEach) s.forEach(function(x){
+          var v = x.val()||{};
+          if(v.from==='admin' && (v.ts||0) > seen) supUnread++;
+        });
+        markFab(); injectSupRow();
+      }catch(e){ console.error('[Support] watch:', e); }
+    };
+    myWatchRef.on('value', myWatchCb);
+  }catch(e){ console.error('[Support] watchMine:', e); }
+}
+function markFab(){ try{ fab.classList.toggle('has-un', supUnread>0); }catch(e){} }
+
+/* --- обёртка renderDmList: после отрисовки списка добавляем строку поддержки --- */
+try{
+  var origRenderDmList = renderDmList;
+  renderDmList = function(){
+    var out = origRenderDmList.apply(this, arguments);
+    injectSupRow();
+    return out;
+  };
+}catch(e){ console.error('[Support] patch renderDmList:', e); }
+
+/* --- старт слежки --- */
+try{ firebase.auth().onAuthStateChanged(function(){ setTimeout(watchMine, 400); }); }catch(e){}
+setTimeout(watchMine, 1200);
+setTimeout(function(){ try{ injectSupRow(); }catch(e){} }, 1500);
+})();
+</script>
+
 </body>
 </html>
