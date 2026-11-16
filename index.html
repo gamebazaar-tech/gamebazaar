@@ -248,7 +248,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.2 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.3 Space</div>
   </div>
 </footer>
 
@@ -258,13 +258,10 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v5.2: ПОЛНАЯ АДМИН-ПАНЕЛЬ ВОЗВРАЩЕНА — вкладки «Обзор»,
-   «Начисление» (вписать ID и начислить рубли), «Лоты»,
-   «Пользователи», «Логи». Всё, что появилось после (меню «⋮»,
-   страницы чужих профилей), убрано. Имена не кликабельные.
-   Галочка владельца держится по нику Sergey_Sergeev — от базы
-   не зависит. Всё рабочее (чаты, лоты, мобильная раскладка)
-   сохранено.
+   v5.3: админ-панель как в v5.2 + умный поиск по ID с подсказкой
+   (если ID не найден, показывает список всех ID в базе) и
+   кнопка «Задать ID» в «Пользователях» — ручная починка
+   слетевших ID. Всё из v5.2 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -1174,8 +1171,10 @@ async function saveProfile(){
   }
 }
 
-/* ===================== АДМИН-ПАНЕЛЬ (ПОЛНАЯ, КАК РАНЬШЕ) =====================
-   Вкладки: Обзор · Начисление · Лоты · Пользователи · Логи. */
+/* ===================== АДМИН-ПАНЕЛЬ =====================
+   Вкладки: Обзор · Начисление · Лоты · Пользователи · Логи.
+   v5.3: умный поиск по ID (если не нашёл — подсказка со списком
+   всех ID) и кнопка «Задать ID» в «Пользователях». */
 let admTab = 'overview';
 let admFoundUser = null;
 
@@ -1194,7 +1193,7 @@ function viewAdmin(){
     <div id="admTabBox"></div>`;
   renderAdmTab();
 }
-function setAdmTab(t){ admTab=t; renderAdmTab(); }
+function setAdmTab(t){ admTab=t; admFoundUser=null; renderAdmTab(); }
 function refreshAdminLive(){
   const path=(location.hash.slice(1)||'home').split('?')[0];
   if(path!=='admin' || !isOwnerAdmin() || !$('admTabBox')) return;
@@ -1222,7 +1221,8 @@ function renderAdmTab(){
         <h3>Начисление баланса по ID</h3>
         <label>ID пользователя (число на сайте)</label>
         <div class="row" style="flex-wrap:nowrap">
-          <input id="admFindId" inputmode="numeric" placeholder="Например: 6" style="max-width:200px">
+          <input id="admFindId" inputmode="numeric" placeholder="Например: 6" style="max-width:200px"
+                 onkeydown="if(event.key==='Enter')admFindUser()">
           <button class="btn small" onclick="admFindUser()">Найти</button>
         </div>
         <div id="admFoundBox"></div>
@@ -1264,7 +1264,10 @@ function renderAdmTab(){
               <td class="price">${fmt(u.balance)} ₽</td>
               <td>${u.role==='owner'?'Владелец':u.role==='admin'?'Админ':'Пользователь'}</td>
               <td class="muted small">${u.createdAt? timeStr(u.createdAt):'—'}</td>
-              <td><button class="btn small ghost" onclick="gotoTopUp(${Number(u.id||0)})">Начислить</button></td>
+              <td style="white-space:nowrap">
+                <button class="btn small ghost" onclick="gotoTopUp(${Number(u.id||0)})">Начислить</button>
+                <button class="btn small ghost" onclick="openSetId('${u.uid}', ${Number(u.id||0)}, '${esc(u.name).replace(/'/g,'&#39;')}')">Задать ID</button>
+              </td>
             </tr>`).join('') : '<tr><td colspan="6" class="locked-box">Пользователей пока нет</td></tr>'}
         </table>
       </div>
@@ -1294,9 +1297,21 @@ function admFindUser(){
   const id = parseInt(raw,10);
   if(!raw || !Number.isInteger(id) || id<=0) return toast('Введите числовой ID', true);
   const u = findUserBySiteId(id);
-  if(!u) return toast('Пользователь с ID '+padId(id)+' не найден', true);
-  admFoundUser = u;
-  drawAdmFound();
+  if(u){ admFoundUser = u; drawAdmFound(); return; }
+  /* ID не нашёлся — показываем подсказку: кто есть в базе и их ID */
+  const users = window._users||[];
+  toast('Пользователь с ID '+padId(id)+' не найден — смотри подсказку ниже', true);
+  const box = $('admFoundBox'); if(!box) return;
+  box.innerHTML = `
+    <div class="card" style="margin-top:14px;background:var(--card2)">
+      <b>ID ${padId(id)} не найден в базе.</b>
+      <p class="muted small">Возможные причины: у человека слетело поле ID (оно null), или его профиль потерялся целиком.<br>
+      Открой вкладку «Пользователи» — если человек там есть, нажми у него «Задать ID» и присвой номер ${padId(id)} (или любой свободный).</p>
+      <div class="muted small" style="margin-top:8px">Сейчас в базе есть такие ID:</div>
+      <div class="row" style="margin-top:6px">
+        ${users.length? users.map(x=>'<span class="chip" onclick="gotoTopUp('+Number(x.id||0)+')" title="'+esc(x.name)+'">'+padId(x.id||0)+' — '+esc(x.name)+'</span>').join('') : '<span class="muted small">База users пуста — профили потерялись целиком.</span>'}
+      </div>
+    </div>`;
 }
 function drawAdmFound(){
   const box = $('admFoundBox'); if(!box) return;
@@ -1338,9 +1353,10 @@ async function admDoTopUp(){
 }
 function gotoTopUp(siteId){
   admTab='topup';
+  admFoundUser=null;
   viewAdmin();
   $('admFindId').value = String(siteId);
-  admFindUser();
+  if(siteId>0) admFindUser();
 }
 async function adminRemoveLot(id){
   modal('<h3>Удалить лот (админ)?</h3>'+
@@ -1355,6 +1371,43 @@ async function confirmAdminRemoveLot(id){
   await db.ref('lotChats/'+id).remove();
   log('Удалён лот (админ)', l? '«'+l.title+'»' : id);
   toast('Лот удалён');
+}
+
+/* ===================== РУЧНАЯ ПОЧИНКА ID =====================
+   Работает даже если у человека поле id слетело (null/0). */
+function openSetId(uid, curId, name){
+  modal(`
+    <h3>Задать ID</h3>
+    <p class="muted small">${esc(name)} · сейчас ID: <b style="color:var(--text)">${padId(curId)}</b></p>
+    <label>Новый ID (число больше нуля)</label>
+    <input id="admSetIdVal" inputmode="numeric" placeholder="Например: ${padId(curId||5)}">
+    <div class="err" id="admSetIdErr"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn ghost" onclick="closeModal()">Отмена</button>
+      <button class="btn" onclick="saveSetId('${uid}')">Задать</button>
+    </div>`);
+}
+async function saveSetId(uid){
+  const raw = $('admSetIdVal').value.trim();
+  const newId = parseInt(raw,10);
+  const err = $('admSetIdErr'); err.textContent='';
+  if(!raw || !Number.isInteger(newId) || newId<=0) return err.textContent='ID — целое число больше нуля';
+  const s = await db.ref('users').get();
+  let taken = null;
+  if(s && s.forEach) s.forEach(x=>{ const v=x.val()||{}; if(Number(v.id)===newId && x.key!==uid) taken=v; });
+  if(taken) return err.textContent='ID занят: его уже носит «'+(taken.name||'?')+'»';
+  const u = (window._users||[]).find(x=>x.uid===uid);
+  try{
+    await db.ref('users/'+uid+'/id').set(newId);
+    log('Задан ID', (u? (u.name||'?'):'?')+': '+padId(u? (u.id||0):0)+' → '+padId(newId));
+    await pushNotif(uid, 'Администрация изменила ваш ID: теперь он '+padId(newId));
+    toast('ID закреплён: '+padId(newId));
+    closeModal();
+    refreshAdminLive();
+  }catch(e){
+    console.error('[PayPlay] Задание ID:', e);
+    err.textContent = (e&&e.code)||e.message||'ошибка';
+  }
 }
 
 /* Старт */
