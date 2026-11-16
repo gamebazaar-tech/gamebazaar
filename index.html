@@ -238,7 +238,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.0 Space</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.1 Space</div>
   </div>
 </footer>
 
@@ -248,12 +248,10 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <script>
 /* =====================================================================
    Pay Play — единый файл сайта (GitHub Pages + Firebase)
-   v5.0: СТРАНИЦА ПРОФИЛЯ УДАЛЕНА. Управление пользователями —
-   целиком в «Сообщениях»: вбиваешь ID → открывается чат, в шапке
-   чата и рядом с любым сообщением пользователя админы и владелец
-   видят «⋮» — галочка, имя, ID (с проверкой занятости), баланс.
-   Имена нигде не кликабельны. Каждое действие — в логи и
-   уведомление пользователю. Всё рабочее из v4.9 сохранено.
+   v5.1: ГАЛОЧКА ВЛАДЕЛЬЦА БОЛЬШЕ НЕ ХРАНИТСЯ В БАЗЕ — она по
+   нику Sergey_Sergeev и не может пропасть. Меню «⋮» работает
+   даже если профиля нет в базе: берёт имя и ID из чата, и в нём
+   есть кнопка «Записать профиль в базу». Всё из v5.0 сохранено.
    ===================================================================== */
 
 window.addEventListener('error', e=>{ try{ toast('Ошибка скрипта: '+(e.message||'?'), true); }catch(_){} });
@@ -306,23 +304,25 @@ const padId = n => String(Number(n||0));
 const isOwnerNick = name => (name||'')===OWNER_NICK;
 function isMobile(){ return window.innerWidth <= 820; }
 
-/* Бейджи рядом с именем: «Владелец» — по нику владельца,
-   галочка ✓ — по полю verified пользователя (видна всем). */
+/* Бейджи рядом с именем.
+   Владелец: бейдж и галочка ВСЕГДА по нику — от базы не зависят.
+   Остальные: галочка по полю verified из базы (если профиль есть). */
 function whoTag(name, uid){
   let s = '';
-  if(isOwnerNick(name)) s += ' <span class="badge owner-badge">Владелец</span>';
+  if(isOwnerNick(name)) return ' <span class="badge owner-badge">Владелец</span><span class="verified" title="Подтверждённый пользователь">✓</span>';
   const u = uid ? (window._users||[]).find(x=>x.uid===uid) : null;
   if(u && u.verified) s += '<span class="verified" title="Подтверждённый пользователь">✓</span>';
   return s;
 }
-/* Кнопка «⋮» — только для администрации, только не на своём имени */
-function dotsBtn(uid){
+/* Кнопка «⋮» — только для администрации, только не на своём имени.
+   Передаём и имя: если профиля в базе нет, меню откроется по имени из чата. */
+function dotsBtn(uid, name){
   if(!isOwnerAdmin() || !uid || uid===me.uid) return '';
-  return '<button class="dots-btn" title="Действия администратора" onclick="event.stopPropagation();openUserMenu(\''+uid+'\')">⋮</button>';
+  return '<button class="dots-btn" title="Действия администратора" onclick="event.stopPropagation();openUserMenu(\''+uid+'\',\''+encodeURIComponent(name||'')+'\')">⋮</button>';
 }
 /* Имя + бейджи + (для админов) «⋮» — некликабельный текст */
 function namePlate(uid, name){
-  return esc(name||'Пользователь')+whoTag(name, uid)+dotsBtn(uid);
+  return esc(name||'Пользователь')+whoTag(name, uid)+dotsBtn(uid, name);
 }
 function preserveInput(id){
   const el = document.getElementById(id);
@@ -355,7 +355,7 @@ function viewAuth(mode){
   return `
   <div class="auth-card card">
     <h2 style="margin-bottom:6px">${reg?'Регистрация':'Вход'}</h2>
-    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунт'}</p>
+    <p class="muted small">${reg?'Создайте аккаунт Pay Play':'Войдите в свой аккаунt'}</p>
     <div class="auth-tabs">
       <button class="${reg?'':'active'}" onclick="authMode='login';render()">Вход</button>
       <button class="${reg?'active':''}" onclick="authMode='reg';render()">Регистрация</button>
@@ -778,9 +778,7 @@ async function sendChatMsg(lotId){
   });
 }
 
-/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ =====================
-   Вход в управление пользователем: вбиваешь ID из Firebase →
-   открывается чат. В шапке чата — «⋮» для администрации. */
+/* ===================== ЛИЧНЫЕ СООБЩЕНИЯ ===================== */
 let dmChatsCache = null;
 let dmOpenChatId = null;
 let dmMsgs = [];
@@ -1025,14 +1023,31 @@ function dmWriteSellerByLot(lotId){
 }
 
 /* ===================== МЕНЮ АДМИНИСТРАТОРА «⋮» =====================
-   Галочка, имя, ID (с проверкой занятости), баланс.
-   Страницы профиля больше нет — всё из чатов и меню. */
+   Работает даже если профиля нет в базе: имя и ID берутся из
+   аргументов (передаются из чата/лота), и есть кнопка
+   «Записать профиль в базу» — она создаёт профиль заново. */
 function findUser(uid){ return (window._users||[]).find(x=>x.uid===uid)||null; }
+let menuCtx = {uid:null, name:'', id:0};
 
-function openUserMenu(uid){
+function openUserMenu(uid, encName){
   if(!isOwnerAdmin()) return;
-  const u = findUser(uid);
-  if(!u) return toast('Профиль пользователя не найден в базе', true);
+  const fallbackName = decodeURIComponent(encName||'');
+  const u0 = findUser(uid);
+  menuCtx = {uid, name: u0? (u0.name||fallbackName):fallbackName, id: u0? (u0.id||0):0};
+  if(!u0){
+    modal(`
+      <h3>${esc(fallbackName||'Пользователь')}${whoTag(fallbackName, uid)}</h3>
+      <p class="muted small">ID: <b style="color:var(--text)">${padId(menuCtx.id||0)}</b> · Баланс: —</p>
+      <div class="notice">Профиля этого пользователя нет в базе (потерялся). Можешь записать его заново — после этого все действия будут работать.</div>
+      <div class="menu-grid">
+        <button class="btn" onclick="writeProfileToDb()">💾 Записать профиль в базу</button>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:14px">
+        <button class="btn ghost small" onclick="closeModal()">Закрыть</button>
+      </div>`);
+    return;
+  }
+  const u = u0;
   const checkTxt = u.verified ? 'Снять галочку ✓' : 'Выдать галочку ✓';
   modal(`
     <h3>${esc(u.name||'Пользователь')}${whoTag(u.name, uid)}</h3>
@@ -1047,22 +1062,47 @@ function openUserMenu(uid){
       <button class="btn ghost small" onclick="closeModal()">Закрыть</button>
     </div>`);
 }
-async function toggleVerified(uid){
-  const u = findUser(uid); if(!u) return;
-  const nv = !u.verified;
+async function writeProfileToDb(){
+  const {uid, name} = menuCtx; if(!uid) return;
+  const nm = (name||'').trim();
+  if(nm.length<2) return toast('Имя неизвестно — сначала задай имя через «Изменить имя»', true);
   try{
+    const isOwner = isOwnerNick(nm);
+    await db.ref('users/'+uid).set({
+      name:nm, email:'', role: isOwner?'owner':'user', verified: isOwner,
+      id: menuCtx.id||null, balance:0, photo:null, createdAt:Date.now()
+    });
+    if(!menuCtx.id){
+      const newId = await assignUserId(nm);
+      await db.ref('users/'+uid+'/id').set(newId);
+      menuCtx.id = newId;
+    }
+    log('Профиль записан в базу', nm+' (ID '+padId(menuCtx.id||0)+')');
+    toast('Профиль записан в базу');
+    openUserMenu(uid, encodeURIComponent(nm));
+  }catch(e){
+    console.error('[PayPlay] Запись профиля:', e);
+    toast('Не получилось: '+((e&&e.code)||e.message||'?'), true);
+  }
+}
+async function toggleVerified(uid){
+  const u = findUser(uid) || {name:menuCtx.name, verified:false};
+  const nv = !(u && u.verified);
+  try{
+    /* Если профиля нет — сначала запишем, потом переключим галочку */
+    if(!findUser(uid)) await writeProfileToDb();
     await db.ref('users/'+uid+'/verified').set(nv);
     log(nv?'Выдана галочка':'Снята галочка', u.name||'?');
     await pushNotif(uid, nv? 'Администрация выдала вам галочку ✓' : 'Администрация сняла вашу галочку');
-    toast(nv? 'Галочка выдана пользователю '+u.name : 'Галочка снята у '+u.name);
-    openUserMenu(uid);
+    toast(nv? 'Галочка выдана пользователю '+(u.name||'?') : 'Галочка снята у '+(u.name||'?'));
+    openUserMenu(uid, encodeURIComponent(menuCtx.name));
   }catch(e){
     console.error('[PayPlay] Галочка:', e);
     toast('Не получилось: '+((e&&e.code)||e.message||'?'), true);
   }
 }
 function openEditName(uid){
-  const u = findUser(uid); if(!u) return;
+  const u = findUser(uid) || {name: menuCtx.name};
   modal(`
     <h3>Изменить имя</h3>
     <p class="muted small">Сейчас: <b style="color:var(--text)">${esc(u.name||'?')}</b></p>
@@ -1070,67 +1110,83 @@ function openEditName(uid){
     <input id="admNewName" maxlength="24" value="${esc(u.name||'')}">
     <div class="err" id="admNameErr"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}')">Назад</button>
+      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
       <button class="btn" onclick="saveAdmName('${uid}')">Сохранить</button>
     </div>`);
 }
 async function saveAdmName(uid){
-  const u = findUser(uid); if(!u) return;
   const newName = $('admNewName').value.trim();
   const err = $('admNameErr'); err.textContent='';
   if(newName.length<2) return err.textContent='Имя — минимум 2 символа';
-  const old = u.name||'';
+  const u0 = findUser(uid);
+  const old = u0? (u0.name||'') : menuCtx.name;
   try{
+    /* Если профиля нет — запись имени создаст его */
     await db.ref('users/'+uid+'/name').set(newName);
+    if(!u0){
+      await db.ref('users/'+uid+'/email').set('');
+      await db.ref('users/'+uid+'/role').set(isOwnerNick(newName)?'owner':'user');
+      await db.ref('users/'+uid+'/verified').set(isOwnerNick(newName));
+      await db.ref('users/'+uid+'/balance').set(0);
+      await db.ref('users/'+uid+'/createdAt').set(Date.now());
+      if(!menuCtx.id){
+        const newId = await assignUserId(newName);
+        await db.ref('users/'+uid+'/id').set(newId);
+        menuCtx.id = newId;
+      }
+    }
     await db.ref('lots').orderByChild('ownerUid').equalTo(uid).once('value').then(s=>{
       s.forEach(l=>db.ref('lots/'+l.key+'/ownerName').set(newName));
     });
     log('Изменено имя', '«'+old+'» → «'+newName+'»');
     await pushNotif(uid, 'Администрация изменила ваше имя: теперь вы «'+newName+'»');
+    menuCtx.name = newName;
     toast('Имя изменено: «'+newName+'»');
-    openUserMenu(uid);
+    openUserMenu(uid, encodeURIComponent(newName));
   }catch(e){
     console.error('[PayPlay] Смена имени:', e);
     err.textContent = (e&&e.code)||e.message||'ошибка';
   }
 }
 function openEditId(uid){
-  const u = findUser(uid); if(!u) return;
+  const u = findUser(uid) || {id: menuCtx.id};
   modal(`
     <h3>Изменить ID</h3>
-    <p class="muted small">Сейчас: ID <b style="color:var(--text)">${padId(u.id||0)}</b> · пользователь: ${esc(u.name||'?')}</p>
+    <p class="muted small">Сейчас: ID <b style="color:var(--text)">${padId(u.id||0)}</b> · пользователь: ${esc(menuCtx.name||'?')}</p>
     <label>Новый ID (число больше нуля)</label>
     <input id="admNewId" inputmode="numeric" placeholder="Например: 7">
     <div class="err" id="admIdErr"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}')">Назад</button>
+      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
       <button class="btn" onclick="saveAdmId('${uid}')">Сохранить</button>
     </div>`);
 }
 async function saveAdmId(uid){
-  const u = findUser(uid); if(!u) return;
   const raw = $('admNewId').value.trim();
   const newId = parseInt(raw,10);
   const err = $('admIdErr'); err.textContent='';
   if(!raw || !Number.isInteger(newId) || newId<=0) return err.textContent='ID — целое число больше нуля';
+  const u = findUser(uid);
   try{
     const s = await db.ref('users').get();
     let taken = null;
     if(s && s.forEach) s.forEach(x=>{ const v=x.val()||{}; if(Number(v.id)===newId && x.key!==uid) taken=v; });
     if(taken) return err.textContent='ID занят: его уже носит «'+(taken.name||'?')+'». Выбери другой номер.';
-    const oldId = u.id||0;
+    const oldId = (u? (u.id||0) : menuCtx.id)||0;
     await db.ref('users/'+uid+'/id').set(newId);
-    log('Изменён ID', (u.name||'?')+': '+padId(oldId)+' → '+padId(newId));
+    menuCtx.id = newId;
+    log('Изменён ID', (menuCtx.name||'?')+': '+padId(oldId)+' → '+padId(newId));
     await pushNotif(uid, 'Администрация изменила ваш ID: теперь он '+padId(newId));
     toast('ID изменён: '+padId(oldId)+' → '+padId(newId));
-    openUserMenu(uid);
+    openUserMenu(uid, encodeURIComponent(menuCtx.name||''));
   }catch(e){
     console.error('[PayPlay] Смена ID:', e);
     err.textContent = (e&&e.code)||e.message||'ошибка';
   }
 }
 function openTopUp(uid){
-  const u = findUser(uid); if(!u) return;
+  const u = findUser(uid);
+  if(!u) return toast('Сначала запиши профиль в базу', true);
   modal(`
     <h3>Пополнить баланс</h3>
     <p class="muted small">${esc(u.name||'?')} · сейчас ${fmt(u.balance)} ₽</p>
@@ -1138,7 +1194,7 @@ function openTopUp(uid){
     <input id="admTopAmount" type="number" min="1" placeholder="Сумма, ₽">
     <div class="err" id="admTopErr"></div>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn ghost" onclick="openUserMenu('${uid}')">Назад</button>
+      <button class="btn ghost" onclick="openUserMenu('${uid}',\''+encodeURIComponent(menuCtx.name||'')+'\')">Назад</button>
       <button class="btn" onclick="adminTopUpNow('${uid}')">Начислить</button>
     </div>`);
 }
@@ -1151,8 +1207,8 @@ async function adminTopUpNow(uid){
     await db.ref('users/'+uid+'/balance').transaction(b=>(b||0)+amount);
     await pushNotif(uid, 'Администрация зачислила вам '+fmt(amount)+' ₽ на баланс');
     log('Начисление', fmt(amount)+' ₽ пользователю '+(u.name||'?')+' (ID '+padId(u.id||0)+')');
-    toast('Зачислено '+fmt(amount)+' ₽ — '+u.name);
-    openUserMenu(uid);
+    toast('Зачислено '+fmt(amount)+' ₽ — '+(u.name||'?'));
+    openUserMenu(uid, encodeURIComponent(menuCtx.name||''));
   }catch(e){
     console.error('[PayPlay] Начисление:', e);
     err.textContent = (e&&e.code)||e.message||'ошибка';
@@ -1329,7 +1385,7 @@ function renderAdmLogs(){
     arr.reverse();
     lb.innerHTML = arr.map(r=>`
         <div class="log-row">
-          <span class="who">${esc(r.actorName||'?')}${whoTag(r.actorName, r.actorUid)}${dotsBtn(r.actorUid)}</span>
+          <span class="who">${esc(r.actorName||'?')}${whoTag(r.actorName, r.actorUid)}${dotsBtn(r.actorUid, r.actorName)}</span>
           <span><b>${esc(r.action)}</b>${r.details? ' — '+esc(r.details):''}</span>
           <span class="muted small" style="margin-left:auto">${timeStr(r.ts)}</span>
         </div>`).join('') || '<div class="locked-box">Логов пока нет</div>';
