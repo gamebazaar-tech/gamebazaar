@@ -11,92 +11,27 @@
 <body>
 <div id="site-header"></div>
 <div class="container">
-
-  <div class="admin-tabs" style="margin-bottom:18px">
-    <button class="tab-btn active" id="nav-catalog" onclick="go('catalog')">🛒 Каталог</button>
-    <button class="tab-btn" id="nav-sell" onclick="go('sell')">➕ Продать</button>
-    <button class="tab-btn" id="nav-profile" onclick="go('profile')">👤 Профиль</button>
+  <div class="notice">&#128640; Демо-витрина. Кнопка «Купить» отправляет заявку в поддержку — админ подтвердит её в админ-панели.</div>
+  <h1>Маркетплейс</h1>
+  <p class="sub">Игровые товары от проверенных продавцов</p>
+  <div class="search-row">
+    <input id="search" placeholder="Поиск: скины, аккаунты, валюта..." oninput="renderLots()">
   </div>
-
-  <!-- ================= КАТАЛОГ ================= -->
-  <section id="view-catalog">
-    <div class="notice">🚀 Лоты ниже выставляют пользователи. Покупка проходит сразу: лот закрывается и попадает в профиль покупателя.</div>
-    <h1>Каталог лотов</h1>
-    <p class="sub">Игровые товары от проверенных продавцов</p>
-    <div class="search-row">
-      <input id="search" placeholder="Поиск: скины, аккаунты, валюта..." oninput="renderUserLots()">
-    </div>
-    <div class="grid" id="userLots"><p class="empty-note">Загрузка лотов...</p></div>
-
-    <h2 style="margin-top:36px">Демо-витрина</h2>
-    <p class="sub">Кнопка «Купить» отправляет заявку в поддержку — админ подтвердит её в админ-панели.</p>
-    <div class="grid" id="lots"></div>
-  </section>
-
-  <!-- ================= ПРОДАТЬ ================= -->
-  <section id="view-sell" style="display:none">
-    <h1>Выставить лот</h1>
-    <p class="sub">Заполните карточку — она появится в каталоге</p>
-    <div class="panel" style="max-width:640px">
-      <label style="display:block;font-weight:600;margin-top:4px">Игра / раздел</label>
-      <select id="sellGame">
-        <option>Standoff 2</option>
-        <option>Brawl Stars</option>
-        <option>CS2</option>
-        <option>Roblox</option>
-        <option>LoL</option>
-        <option>Genshin Impact</option>
-        <option>Другое</option>
-      </select>
-      <label style="display:block;font-weight:600;margin-top:12px">Название лота</label>
-      <input id="sellTitle" maxlength="80" placeholder="Например: скин «Драконий закат»">
-      <label style="display:block;font-weight:600;margin-top:12px">Описание</label>
-      <textarea id="sellDesc" maxlength="600" rows="4" placeholder="Что продаёте, состояние, условия передачи" style="width:100%"></textarea>
-      <label style="display:block;font-weight:600;margin-top:12px">Цена, ₽</label>
-      <input id="sellPrice" type="number" min="1" placeholder="1490">
-      <label style="display:block;font-weight:600;margin-top:12px">Картинка — необязательно, ссылка</label>
-      <input id="sellImg" maxlength="400" placeholder="https://...">
-      <label style="display:block;font-weight:600;margin-top:12px">Способ выдачи</label>
-      <select id="sellDelivery" onchange="toggleAuto()">
-        <option value="manual">🤝 Выдаю сам — договоримся в чате лота</option>
-        <option value="auto">⚡ Автовыдача — покупатель получит данные сразу после оплаты</option>
-      </select>
-      <div id="autoBlock" style="display:none;margin-top:10px">
-        <label style="display:block;font-weight:600">Данные товара (логин / пароль / код)</label>
-        <textarea id="sellAutoData" maxlength="1000" rows="4" placeholder="Покупатель увидит это сразу после оплаты" style="width:100%"></textarea>
-        <p class="empty-note" style="margin-top:6px">Данные хранятся отдельно от карточки лота и показываются только покупателю.</p>
-      </div>
-      <p id="sellErr" style="color:var(--danger);margin-top:10px"></p>
-      <button class="btn-primary" style="margin-top:12px" onclick="submitLot()">Опубликовать лот</button>
-    </div>
-  </section>
-
-  <!-- ================= ПРОФИЛЬ ================= -->
-  <section id="view-profile" style="display:none">
-    <h1>Профиль</h1>
-    <div id="profile-body"></div>
-  </section>
-
-  <!-- ================= СТРАНИЦА ЛОТА ================= -->
-  <section id="view-lot" style="display:none">
-    <div id="lot-body"></div>
-  </section>
-
+  <div class="grid" id="lots"></div>
 </div>
 
 <script src="firebase-config.js"></script>
 <script src="auth.js"></script>
 <script>
-// ---------- Демо-витрина (как было) ----------
 const LOTS = [
-  { emoji: "🎮", name: "Скин «Драконий закат»", desc: "Редкий скин, Standoff 2. Без привязки.", price: 1490, seller: "SkinMaster" },
-  { emoji: "⚔️", name: "Аккаунт Standoff 2", desc: "12 легендарных скинов, рейтинг Легенда.", price: 3900, seller: "ProSeller" },
-  { emoji: "💎", name: "1000 кристаллов", desc: "Пополнение Brawl Stars, безопасно.", price: 690, seller: "TopUpPro" },
-  { emoji: "🧸", name: "Набор «Космос»", desc: "Бандл наклеек CS2 из 25 предметов.", price: 1250, seller: "CaseKing" },
-  { emoji: "🏴", name: "Аккаунт Brawl Stars", desc: "40 000 кубков, все бравлеры открыты.", price: 5200, seller: "ProSeller" },
-  { emoji: "🎵", name: "Гифт Spotify Premium", desc: "Подписка на 3 месяца, активация сразу.", price: 890, seller: "GiftMaster" },
-  { emoji: "🧿", name: "Скины Roblox", desc: "Набор из 5 ограниченных предметов.", price: 2100, seller: "RobloxPro" },
-  { emoji: "🎯", name: "Буст Duo LoL", desc: "Подниму рейтинг до Золота за неделю.", price: 1500, seller: "BoostMan" }
+  { emoji: "\u{1F3AE}", name: "Скин «Драконий закат»", desc: "Редкий скин, Standoff 2. Без привязки.", price: 1490, seller: "SkinMaster" },
+  { emoji: "\u2694\uFE0F", name: "Аккаунт Standoff 2", desc: "12 легендарных скинов, рейтинг Легенда.", price: 3900, seller: "ProSeller" },
+  { emoji: "\u{1F48E}", name: "1000 кристаллов", desc: "Пополнение Brawl Stars, безопасно.", price: 690, seller: "TopUpPro" },
+  { emoji: "\u{1F9F8}", name: "Набор «Космос»", desc: "Бандл наклеек CS2 из 25 предметов.", price: 1250, seller: "CaseKing" },
+  { emoji: "\u{1F0CF}", name: "Аккаунт Brawl Stars", desc: "40 000 кубков, все бравлеры открыты.", price: 5200, seller: "ProSeller" },
+  { emoji: "\u{1F3B5}", name: "Гифт Spotify Premium", desc: "Подписка на 3 месяца, активация сразу.", price: 890, seller: "GiftMaster" },
+  { emoji: "\u{1F52E}", name: "Скины Roblox", desc: "Набор из 5 ограниченных предметов.", price: 2100, seller: "RobloxPro" },
+  { emoji: "\u{1F3AF}", name: "Буст Duo LoL", desc: "Подниму рейтинг до Золота за неделю.", price: 1500, seller: "BoostMan" }
 ];
 
 function renderLots() {
@@ -108,7 +43,7 @@ function renderLots() {
         '<div class="lot-emoji">' + l.emoji + '</div>' +
         '<div class="lot-name">' + gbEsc(l.name) + '</div>' +
         '<div class="lot-desc">' + gbEsc(l.desc) + '</div>' +
-        '<div class="lot-price">' + l.price + ' ₽</div>' +
+        '<div class="lot-price">' + l.price + ' \u20BD</div>' +
         '<div class="lot-seller">Продавец: ' + gbEsc(l.seller) + '</div>' +
         '<button class="btn-primary" onclick="gbBuy(\'' + l.name.replace(/'/g, "\\'") + '\', ' + l.price + ')">Купить</button>' +
       '</div>').join("") || '<p class="empty-note">Ничего не найдено</p>';
@@ -117,367 +52,23 @@ function renderLots() {
 function gbBuy(itemName, price) {
   const u = gbCurrentUser();
   if (!u) { window.location.href = "login.html"; return; }
-  const tr = { item: itemName, price: price, from: u.nick, status: "new", ts: Date.now() };
+  const tr = {
+    item: itemName, price: price, from: u.nick, status: "new", ts: Date.now()
+  };
   gbDB.ref("transactions").push(tr).then(function() {
     gbDB.ref("dialogs/" + u.nick + "/messages").push({
       role: "user", from: u.nick,
-      text: "🛒 Хочу купить: " + itemName + " за " + price + " ₽. Подтвердите сделку, пожалуйста.",
+      text: "\u{1F6D2} Хочу купить: " + itemName + " за " + price + " \u20BD. Подтвердите сделку, пожалуйста.",
       ts: Date.now()
     });
     alert("Заявка отправлена! Следите за ответом в разделе «Сообщения».");
     window.location.href = "chat.html";
-  }).catch(function(e) { alert("Ошибка отправки: " + e.message); });
+  }).catch(function(e){ alert("Ошибка: " + e.message); });
 }
 
-// ---------- Навигация ----------
-let lotsCache = {};
-let purchasesCache = {};
-let currentLotId = null;
-let lotSub = null;
-let chatSub = null;
-
-function go(view) {
-  ["catalog", "sell", "profile", "lot"].forEach(function(v) {
-    const el = document.getElementById("view-" + v);
-    if (el) el.style.display = (v === view) ? "block" : "none";
-    const nav = document.getElementById("nav-" + v);
-    if (nav) nav.classList.toggle("active", v === view);
-  });
-  if (lotSub) { lotSub.off(); lotSub = null; }
-  if (chatSub) { chatSub.off(); chatSub = null; }
-  if (view === "catalog") renderUserLots();
-  if (view === "profile") renderProfile();
-  window.scrollTo(0, 0);
-}
-
-// ---------- Каталог: лоты из базы ----------
-function lotCard(id, l) {
-  const media = l.img
-    ? '<img src="' + gbEsc(l.img) + '" alt="" style="width:100%;height:130px;object-fit:cover;border-radius:10px">'
-    : '<div class="lot-emoji">' + (l.emoji || "📦") + '</div>';
-  let tags = "";
-  if (l.delivery === "auto") tags += '<span class="badge-status badge-approved" style="display:inline-block;margin-right:6px">⚡ Автовыдача</span>';
-  let btn;
-  if (l.status === "sold") btn = '<span class="badge-status badge-denied" style="display:inline-block">Продан</span>';
-  else btn = '<button class="btn-primary" onclick="buyLot(\'' + id + '\')">Купить</button>';
-  return '<div class="lot-card">' + media +
-    '<div class="lot-name">' + gbEsc(l.title) + '</div>' +
-    '<div class="lot-desc">' + gbEsc(l.desc || "") + '</div>' +
-    '<div class="lot-price">' + Number(l.price) + ' ₽</div>' +
-    '<div class="lot-seller">Продавец: ' + gbEsc(l.seller) + '</div>' +
-    '<div style="margin:8px 0">' + tags + btn + '</div>' +
-    '<div><a href="javascript:void(0)" onclick="openLot(\'' + id + '\')">💬 Чат лота →</a></div>' +
-  '</div>';
-}
-
-function renderUserLots() {
-  const box = document.getElementById("userLots");
-  if (!box) return;
-  const u = gbCurrentUser();
-  const q = (document.getElementById("search").value || "").toLowerCase();
-  const ids = Object.keys(lotsCache).sort(function(a, b) {
-    return (lotsCache[b].createdAt || 0) - (lotsCache[a].createdAt || 0);
-  }).filter(function(id) {
-    const l = lotsCache[id];
-    if (!l || l.status !== "active") return false; // проданные в каталоге не показываем
-    return !q || String(l.title).toLowerCase().includes(q) || String(l.desc || "").toLowerCase().includes(q);
-  });
-  if (!ids.length) {
-    box.innerHTML = '<p class="empty-note">Пока нет активных лотов. Стань первым — <a href="javascript:void(0)" onclick="go(\'sell\')">выстави лот</a>!</p>';
-    return;
-  }
-  box.innerHTML = ids.map(function(id) { return lotCard(id, lotsCache[id]); }).join("");
-}
-
-// ---------- Продать ----------
-function toggleAuto() {
-  const on = document.getElementById("sellDelivery").value === "auto";
-  document.getElementById("autoBlock").style.display = on ? "block" : "none";
-}
-
-function submitLot() {
-  const u = gbCurrentUser();
-  if (!u) { location.href = "login.html"; return; }
-  const game = document.getElementById("sellGame").value;
-  const title = document.getElementById("sellTitle").value.trim();
-  const desc = document.getElementById("sellDesc").value.trim();
-  const price = Number(document.getElementById("sellPrice").value);
-  const img = document.getElementById("sellImg").value.trim();
-  const delivery = document.getElementById("sellDelivery").value;
-  const autoTxt = (document.getElementById("sellAutoData").value || "").trim();
-  const err = document.getElementById("sellErr");
-  if (title.length < 3) { err.textContent = "Название — минимум 3 символа"; return; }
-  if (desc.length < 5) { err.textContent = "Добавьте описание лота"; return; }
-  if (!price || price <= 0) { err.textContent = "Укажите цену больше нуля"; return; }
-  if (delivery === "auto" && autoTxt.length < 3) { err.textContent = "Для автовыдачи заполните данные товара"; return; }
-  err.textContent = "";
-  const lot = {
-    game: game, category: game, title: title, desc: desc, price: price,
-    img: img || null, seller: u.nick, status: "active",
-    delivery: delivery, createdAt: Date.now()
-  };
-  const ref = gbDB.ref("lots").push();
-  const done = function() { go("profile"); };
-  if (delivery === "auto") {
-    ref.set(lot).then(function() {
-      return gbDB.ref("autoData/" + ref.key).set({ text: autoTxt, ts: Date.now() });
-    }).then(done).catch(function(e) { err.textContent = "Ошибка: " + e.message; });
-  } else {
-    ref.set(lot).then(done).catch(function(e) { err.textContent = "Ошибка: " + e.message; });
-  }
-}
-
-// ---------- Покупка ----------
-function buyLot(id) {
-  const u = gbCurrentUser();
-  if (!u) { location.href = "login.html"; return; }
-  gbDB.ref("lots/" + id).once("value").then(function(s) {
-    const l = s.val();
-    if (!l || l.status === "sold") { alert("Лот уже недоступен"); go("catalog"); return; }
-    if (!confirm("Купить «" + l.title + "» за " + l.price + " ₽ у " + l.seller + "?")) return;
-    s.ref.update({ status: "sold", buyer: u.nick, soldAt: Date.now() }).then(function() {
-      gbDB.ref("purchases").push({
-        lotId: id, title: l.title, price: Number(l.price),
-        buyer: u.nick, seller: l.seller, delivery: l.delivery || "manual", ts: Date.now()
-      });
-      gbDB.ref("lotChats/" + id + "/messages").push({
-        role: "system", from: "Pay Play",
-        text: "✅ Лот продан. Покупатель: " + u.nick + ". Чат остаётся открытым для продавца и покупателя.",
-        ts: Date.now()
-      });
-      if ((l.delivery || "manual") === "auto") openLot(id);
-      else go("profile");
-    }).catch(function(e) { alert("Ошибка покупки: " + e.message); });
-  }).catch(function(e) { alert("Ошибка: " + e.message); });
-}
-
-// ---------- Чат лота ----------
-function attachChat(containerId, lotId) {
-  const wrap = document.getElementById(containerId);
-  if (!wrap) return;
-  wrap.innerHTML = '<div class="panel"><p class="empty-note">Загрузка чата...</p></div>';
-  chatSub = gbDB.ref("lotChats/" + lotId + "/messages");
-  chatSub.on("value", function(snap) {
-    const box = document.getElementById(containerId);
-    if (!box) return;
-    const val = snap.val() || {};
-    const keys = Object.keys(val).sort();
-    const u = gbCurrentUser();
-    const l = lotsCache[lotId];
-    const inner = keys.length ? keys.map(function(k) {
-      const m = val[k];
-      if (m.role === "system") {
-        return '<div class="msg" style="justify-content:center;text-align:center"><span class="who" style="color:var(--muted)">' + gbEsc(m.text) + '</span></div>';
-      }
-      const mine = u && m.from === u.nick;
-      return '<div class="msg ' + (mine ? "user" : "admin") + '"><span class="who">' + gbEsc(m.from) + '</span>' + gbEsc(m.text) + '</div>';
-    }).join("") : '<p class="empty-note">Пока нет сообщений</p>';
-    let canWrite = !!u;
-    if (l && l.status === "sold" && !(u && (u.nick === l.seller || u.nick === l.buyer))) canWrite = false;
-    box.innerHTML = '<div class="chat-wrap"><div class="chat-main">' +
-      '<div class="chat-messages" id="chat-msgs-' + containerId + '">' + inner + '</div>' +
-      (canWrite
-        ? '<div class="chat-input-row"><input id="chat-inp-' + containerId + '" placeholder="Напишите сообщение..." maxlength="1000"><button class="btn-primary" onclick="sendChatMsg(\'' + containerId + '\',\'' + lotId + '\')">Отправить</button></div>'
-        : '<p class="empty-note">🔒 Чат закрыт — лот продан. Доступен только просмотр.</p>') +
-      '</div></div>';
-    const mb = document.getElementById("chat-msgs-" + containerId);
-    if (mb) mb.scrollTop = mb.scrollHeight;
-    const inp = document.getElementById("chat-inp-" + containerId);
-    if (inp) inp.addEventListener("keydown", function(e) { if (e.key === "Enter") sendChatMsg(containerId, lotId); });
-  });
-}
-
-function sendChatMsg(containerId, lotId) {
-  const u = gbCurrentUser();
-  if (!u) { location.href = "login.html"; return; }
-  const input = document.getElementById("chat-inp-" + containerId);
-  if (!input) return;
-  const text = input.value.trim();
-  if (!text) return;
-  const l = lotsCache[lotId];
-  if (l && l.status === "sold" && l.seller !== u.nick && l.buyer !== u.nick) {
-    alert("Чат закрыт — лот продан. Доступен только просмотр.");
-    return;
-  }
-  input.value = "";
-  gbDB.ref("lotChats/" + lotId + "/messages").push({
-    role: (l && l.seller === u.nick) ? "seller" : "buyer",
-    from: u.nick, text: text, ts: Date.now()
-  });
-}
-
-// ---------- Страница лота ----------
-function openLot(id) {
-  currentLotId = id;
-  go("lot");
-  renderLotView();
-}
-
-function renderLotView() {
-  const body = document.getElementById("lot-body");
-  if (!currentLotId) { body.innerHTML = '<p class="empty-note">Лот не выбран</p>'; return; }
-  lotSub = gbDB.ref("lots/" + currentLotId);
-  lotSub.on("value", function(snap) {
-    const l = snap.val();
-    const u = gbCurrentUser();
-    if (!l) { body.innerHTML = '<div class="panel"><p class="empty-note">Лот не найден. <a href="javascript:void(0)" onclick="go(\'catalog\')">В каталог</a></p></div>'; return; }
-    let html = '<p><a href="javascript:void(0)" onclick="go(\'catalog\')">← В каталог</a></p>';
-    html += '<div class="panel" style="margin-top:10px">';
-    if (l.img) html += '<img src="' + gbEsc(l.img) + '" alt="" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px;margin-bottom:12px">';
-    html += '<div class="lot-name" style="font-size:22px">' + gbEsc(l.title) + '</div>';
-    html += '<p style="margin-top:8px">' + gbEsc(l.desc || "") + '</p>';
-    html += '<p class="lot-price" style="font-size:22px;margin-top:10px">' + Number(l.price) + ' ₽</p>';
-    html += '<p class="lot-seller" style="margin-top:4px">Продавец: ' + gbEsc(l.seller) + ' · Раздел: ' + gbEsc(l.game || l.category || "Другое") + '</p>';
-    if (l.delivery === "auto") html += '<span class="badge-status badge-approved" style="display:inline-block;margin-top:8px">⚡ Автовыдача</span>';
-    if (l.status === "sold") {
-      html += '<div class="panel" style="margin-top:12px;background:var(--card2)"><b>Лот закрыт</b> — покупатель: ' + gbEsc(l.buyer || "?") + '. Лот доступен только для просмотра.</div>';
-    }
-    if (l.status === "sold" && l.delivery === "auto" && u && u.nick === l.buyer) {
-      html += '<div id="lotAutoBox" class="panel" style="margin-top:12px"><p class="empty-note">Загрузка данных товара...</p></div>';
-      gbDB.ref("autoData/" + currentLotId).once("value").then(function(ds) {
-        const box = document.getElementById("lotAutoBox");
-        if (!box) return;
-        const t = (ds.val() || {}).text || "";
-        box.innerHTML = t
-          ? '<b>⚡ Данные товара:</b><div style="background:var(--card2);border-radius:10px;padding:12px;margin-top:8px;white-space:pre-wrap;word-break:break-word">' + gbEsc(t) + '</div>'
-          : '<p class="empty-note">Данные не найдены — напишите продавцу в чате.</p>';
-      });
-    }
-    if (l.status === "active" && (!u || u.nick !== l.seller)) {
-      html += '<div style="margin-top:12px"><button class="btn-primary" onclick="buyLot(\'' + currentLotId + '\')">Купить за ' + Number(l.price) + ' ₽</button></div>';
-    }
-    html += '</div>';
-    html += '<h2 style="margin-top:22px">💬 Чат лота</h2><div id="lot-chat"></div>';
-    body.innerHTML = html;
-    if (chatSub) { chatSub.off(); chatSub = null; }
-    attachChat("lot-chat", currentLotId);
-  });
-}
-
-// ---------- Профиль ----------
-function renderProfile() {
-  const body = document.getElementById("profile-body");
-  const u = gbCurrentUser();
-  if (!u) {
-    body.innerHTML = '<div class="panel"><p class="empty-note">🔒 Чтобы видеть свои лоты и покупки, <a href="login.html">войдите или зарегистрируйтесь</a>.</p></div>';
-    return;
-  }
-  body.innerHTML =
-    '<p class="sub">Ник: <b>' + gbEsc(u.nick) + '</b></p>' +
-    '<div class="panel" style="margin-bottom:18px"><b>Мои лоты</b><div id="myLots" style="margin-top:10px"></div></div>' +
-    '<div class="panel" style="margin-bottom:18px"><b>Мои покупки</b><div id="myPurchases" style="margin-top:10px"></div></div>' +
-    '<div class="panel"><b>💬 Сообщения по покупкам</b><div id="purchaseChats" style="margin-top:10px"></div></div>' +
-    '<div id="purchaseChatWindow" style="margin-top:18px"></div>';
-  renderMyLots();
-  renderMyPurchases();
-  renderPurchaseChats();
-}
-
-function renderMyLots() {
-  const box = document.getElementById("myLots");
-  if (!box) return;
-  const u = gbCurrentUser();
-  if (!u) return;
-  const ids = Object.keys(lotsCache).filter(function(id) { return lotsCache[id].seller === u.nick; })
-    .sort(function(a, b) { return (lotsCache[b].createdAt || 0) - (lotsCache[a].createdAt || 0); });
-  if (!ids.length) {
-    box.innerHTML = '<p class="empty-note">Вы пока ничего не выставили. <a href="javascript:void(0)" onclick="go(\'sell\')">Продать что-нибудь</a></p>';
-    return;
-  }
-  box.innerHTML = ids.map(function(id) {
-    const l = lotsCache[id];
-    return '<div class="row-card"><div class="grow"><b>' + gbEsc(l.title) + '</b> &nbsp;<span style="color:var(--muted)">' + Number(l.price) + ' ₽</span>' +
-      (l.status === "sold" ? ' <span class="badge-status badge-approved">Продан</span>' : ' <span class="badge-status badge-new">Активен</span>') +
-      (l.delivery === "auto" ? ' <span style="color:var(--gold)">⚡ авто</span> <span class="btn-secondary" style="cursor:pointer" onclick="showAutoData(\'' + id + '\')">Данные</span>' : "") +
-      '</div><span class="btn-secondary" style="cursor:pointer" onclick="openLot(\'' + id + '\')">Открыть →</span></div>' +
-      '<div id="autodata-' + id + '" style="display:none;margin:6px 0 10px 0"></div>';
-  }).join("");
-}
-
-function renderMyPurchases() {
-  const box = document.getElementById("myPurchases");
-  if (!box) return;
-  const u = gbCurrentUser();
-  if (!u) return;
-  const ids = Object.keys(purchasesCache).filter(function(k) { return purchasesCache[k].buyer === u.nick; })
-    .sort(function(a, b) { return (purchasesCache[b].ts || 0) - (purchasesCache[a].ts || 0); });
-  if (!ids.length) {
-    box.innerHTML = '<p class="empty-note">Покупок пока нет. <a href="javascript:void(0)" onclick="go(\'catalog\')">В каталог</a></p>';
-    return;
-  }
-  box.innerHTML = ids.map(function(k) {
-    const p = purchasesCache[k];
-    return '<div class="row-card"><div class="grow"><b>' + gbEsc(p.title) + '</b> &nbsp;<span style="color:var(--muted)">' + Number(p.price) + ' ₽</span>' +
-      (p.delivery === "auto" ? ' <span style="color:var(--gold)">⚡ авто</span> <span class="btn-secondary" style="cursor:pointer" onclick="showAutoData(\'' + p.lotId + '\')">Данные</span>' : "") +
-      '</div><span class="btn-secondary" style="cursor:pointer" onclick="openPurchaseChat(\'' + p.lotId + '\')">💬 чат</span></div>' +
-      '<div id="autodata-' + p.lotId + '" style="display:none;margin:6px 0 10px 0"></div>';
-  }).join("");
-}
-
-function renderPurchaseChats() {
-  const box = document.getElementById("purchaseChats");
-  if (!box) return;
-  const u = gbCurrentUser();
-  if (!u) return;
-  const ids = Object.keys(lotsCache).filter(function(id) {
-    const l = lotsCache[id];
-    return l.status === "sold" && (l.buyer === u.nick || l.seller === u.nick);
-  });
-  if (!ids.length) {
-    box.innerHTML = '<p class="empty-note">Пока нет переписок по проданным и купленным лотам.</p>';
-    return;
-  }
-  box.innerHTML = ids.map(function(id) {
-    const l = lotsCache[id];
-    return '<div class="row-card"><div class="grow"><b>' + gbEsc(l.title) + '</b> &nbsp;' +
-      (l.buyer === u.nick ? '<span class="badge-status badge-approved">Вы покупали</span>' : '<span class="badge-status badge-new">Вы продавали</span>') +
-      '</div><span class="btn-secondary" style="cursor:pointer" onclick="openPurchaseChat(\'' + id + '\')">Открыть переписку →</span></div>';
-  }).join("");
-}
-
-function openPurchaseChat(lotId) {
-  const win = document.getElementById("purchaseChatWindow");
-  if (!win) return;
-  const l = lotsCache[lotId];
-  win.innerHTML = '<div class="panel"><b>' + (l ? gbEsc(l.title) : "Лот") + '</b> &nbsp;<span style="color:var(--muted)">чат по сделке</span><div id="purchase-chat" style="margin-top:10px"></div></div>';
-  if (chatSub) { chatSub.off(); chatSub = null; }
-  attachChat("purchase-chat", lotId);
-  win.scrollIntoView({ behavior: "smooth" });
-}
-
-function showAutoData(lotId) {
-  const box = document.getElementById("autodata-" + lotId);
-  if (!box) return;
-  if (box.style.display === "block") { box.style.display = "none"; return; }
-  box.style.display = "block";
-  box.innerHTML = '<p class="empty-note">Загрузка данных...</p>';
-  gbDB.ref("autoData/" + lotId).once("value").then(function(s) {
-    const t = (s.val() || {}).text || "";
-    box.innerHTML = t
-      ? '<div style="background:var(--card2);border-radius:10px;padding:12px;white-space:pre-wrap;word-break:break-word">' + gbEsc(t) + '</div>'
-      : '<p class="empty-note">Данные не найдены — напишите продавцу в чате.</p>';
-  });
-}
-
-// ---------- Запуск ----------
 document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("site-header").outerHTML = gbHeaderHTML().replace('<header', '<header id="site-header"');
-
-  gbDB.ref("lots").on("value", function(snap) {
-    lotsCache = snap.val() || {};
-    if (document.getElementById("view-catalog").style.display !== "none") renderUserLots();
-    if (document.getElementById("view-profile").style.display !== "none") {
-      renderMyLots();
-      renderPurchaseChats();
-    }
-  });
-
-  gbDB.ref("purchases").on("value", function(snap) {
-    purchasesCache = snap.val() || {};
-    if (document.getElementById("view-profile").style.display !== "none") renderMyPurchases();
-  });
-
-  go("catalog");
+  renderLots();
 });
 </script>
 </body>
