@@ -323,6 +323,17 @@ function whoTag(name, uid){
   return (u && u.verified) ? '<span class="verified" title="Подтверждённый пользователь">✓</span>' : '';
 }
 /* Имя + бейджи — простой некликабельный текст */
+function reloadUsers(){
+  db.ref('users').get().then(s=>{
+    const arr=[];
+    if(s && s.forEach) s.forEach(x=>{ arr.push({uid:x.key, ...(x.val()||{})}); });
+    window._users = arr;
+    if(typeof renderAdmTab==='function' && $('admTabBox')) renderAdmTab();
+  }).catch(e=>console.error('[PayPlay] users load:', e));
+}
+setInterval(reloadUsers, 4000);
+reloadUsers();
+
 function namePlate(uid, name){
   return esc(name||'Пользователь')+whoTag(name, uid);
 }
