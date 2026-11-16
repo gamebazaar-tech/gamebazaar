@@ -245,7 +245,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 <footer>
   <div class="foot-in">
     <div class="foot-links">
-      <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
+      <a href="https://vk.ru/sergeybazaar" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
     <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.3 Space</div>
@@ -295,6 +295,8 @@ const CATEGORIES = ['Игровая валюта','Аккаунт','Скины',
 const MIN_DEPOSIT = 25;
 const OWNER_NICK = 'Sergey_Sergeev';
 const VK_BOT_LINK = 'https://vk.me/club243328738';
+const OWNER_VK_LINK = 'https://vk.ru/sergeybazaar';
+const SUPPORT_UID = 'SUPPORT_PAYPLAY_BOT';
 const GAME_IMG = {
   'Black Russia':'img/blackrussia.jpg',
   'PUBG':'img/pubg.png',
@@ -328,13 +330,18 @@ function reloadUsers(){
     const arr=[];
     if(s && s.forEach) s.forEach(x=>{ arr.push({uid:x.key, ...(x.val()||{})}); });
     window._users = arr;
-    if(typeof renderAdmTab==='function' && $('admTabBox')) renderAdmTab();
+    const snapU = JSON.stringify(arr);
+    if(snapU !== (window._usersSnap||'')){
+      window._usersSnap = snapU;
+      if(typeof renderAdmTab==='function' && $('admTabBox')) renderAdmTab();
+    }
   }).catch(e=>console.error('[PayPlay] users load:', e));
 }
 setInterval(reloadUsers, 4000);
 reloadUsers();
 
 function namePlate(uid, name){
+  if(uid===SUPPORT_UID) return esc('Поддержка')+' <span class="verified" title="Подтверждённый пользователь">✓</span>';
   return esc(name||'Пользователь')+whoTag(name, uid);
 }
 function preserveInput(id){
@@ -625,8 +632,8 @@ function viewHome(){
 
 function openDeposit(){
   if(!(me && prof)) return toast('Сначала войдите на сайт', true);
-  window.open(VK_BOT_LINK, '_blank');
-  toast('Открываем бота пополнения во ВКонтакте');
+  window.open(OWNER_VK_LINK, '_blank');
+  toast('Открываем профиль владельца во ВКонтакте');
 }
 
 /* ===================== КАТАЛОГ ===================== */
@@ -923,14 +930,30 @@ function viewInbox(){
 }
 function renderDmList(){
   const box = $('dmList'); if(!box || !me) return;
-  const chats = Object.entries(dmChatsCache||{})
+  const allChats = Object.entries(dmChatsCache||{})
     .map(([key,m])=>({key, ...m}))
     .sort((a,b)=>(b.lastTs||0)-(a.lastTs||0));
+  const chats = allChats.filter(c=>!c.participants || !c.participants[SUPPORT_UID]);
+  const supKey = dmKeyFor(me.uid, SUPPORT_UID);
+  const supMeta = (dmChatsCache||{})[supKey]||{};
+  const supUnread = Number((supMeta.unread||{})[me.uid]||0);
+  const supRow = `
+    <div class="dm-item${dmOpenChatId===supKey?' sel':''}" onclick="openSupportChat()">
+      <div class="dm-ava">💬</div>
+      <div class="dm-info">
+        <div class="dm-name">Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span></div>
+        <div class="dm-preview">${esc(supMeta.lastText||'Помощь по сайту и заказам')}</div>
+      </div>
+      <div class="dm-right">
+        <div class="dm-time">${supMeta.lastTs?timeStr(supMeta.lastTs):''}</div>
+        ${supUnread?`<div class="dm-badge">${supUnread>99?'99+':supUnread}</div>`:''}
+      </div>
+    </div>`;
   if(!chats.length){
-    box.innerHTML = '<div class="locked-box" style="margin:14px">Диалогов пока нет.<br>Начните чат по ID пользователя или нажмите «✉️ Написать продавцу» на карточке лота.</div>';
+    box.innerHTML = supRow + '<div class="locked-box" style="margin:14px">Личных диалогов пока нет.<br>Начните чат по ID пользователя или нажмите «✉️ Написать продавцу» на карточке лота.</div>';
     return;
   }
-  box.innerHTML = chats.map(c=>{
+  box.innerHTML = supRow + chats.map(c=>{
     const otherUid = Object.keys(c.participants||{}).find(u=>u!==me.uid) || '?';
     const u = (c.users||{})[otherUid]||{};
     const unread = Number((c.unread||{})[me.uid]||0);
@@ -978,7 +1001,7 @@ function drawDmChat(){
       <div class="row" style="gap:10px">
         <div class="dm-ava" style="width:38px;height:38px;font-size:14px">${u.photo?'<img src="'+esc(u.photo)+'" alt="">':esc((u.name||'?')[0].toUpperCase())}</div>
         <b>${namePlate(otherUid, u.name)}</b>
-        <span class="muted small">ID: ${padId((meta.ids||{})[otherUid]||0)}</span>
+        ${otherUid===SUPPORT_UID?'':'<span class="muted small">ID: '+padId((meta.ids||{})[otherUid]||0)+'</span>'}
       </div>
     </div>
     <div class="chat-wrap" id="dmMsgList">${html}</div>
@@ -1002,6 +1025,7 @@ async function sendDmMsg(){
       text, ts:Date.now()
     };
     await db.ref('dmMsgs/'+key).push(msg);
+    if(key===dmKeyFor(me.uid, SUPPORT_UID)) db.ref('support/'+me.uid+'/msgs').push(Object.assign({}, msg, {from:'user'}));
     const meta = (dmChatsCache||{})[key]||{};
     const otherUid = Object.keys(meta.participants||{}).find(u=>u!==me.uid);
     const updates = {
@@ -1164,7 +1188,7 @@ function viewProfile(){
         </div>
         <button class="btn" onclick="openDeposit()">Пополнить баланс</button>
       </div>
-      <div class="muted small" style="margin-top:10px">Пополнение идёт через нашего ВК-бота: нажмите кнопку, и откроется чат с ботом, где вам дадут инструкцию.</div>
+      <div class="muted small" style="margin-top:10px">Пополнение — через ВК владельца: нажмите «Пополнить баланс», откроется профиль — напишите ему и назовите свой ID.</div>
     </div>
     <div class="section-title">Мои лоты</div>
     <div class="card" id="myLots"></div>`;
@@ -1223,13 +1247,26 @@ function viewAdmin(){
   renderAdmTab();
   adminReloadUsers();
 }
-function setAdmTab(t){ admTab=t; admFoundUser=null; renderAdmTab(); if(t==='overview'||t==='users'||t==='topup') adminReloadUsers(); }
+function setAdmTab(t){
+  admTab=t; admFoundUser=null;
+  document.querySelectorAll('.tab').forEach(b=>{
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').indexOf("setAdmTab('"+t+"')") > -1);
+  });
+  renderAdmTab(); if(t==='overview'||t==='users'||t==='topup') adminReloadUsers();
+}
 function refreshAdminLive(){
   const path=(location.hash.slice(1)||'home').split('?')[0];
   if(path!=='admin' || !isOwnerAdmin() || !$('admTabBox')) return;
   renderAdmTab();
 }
 function renderAdmTab(){
+  const stAmt = preserveInput('admAmount');
+  const stFind = preserveInput('admFindId');
+  renderAdmTabOrig();
+  restoreInput('admAmount', stAmt);
+  restoreInput('admFindId', stFind);
+}
+function renderAdmTabOrig(){
   const box = $('admTabBox'); if(!box || !isOwnerAdmin()) return;
   if(admTab==='overview'){
     const users = window._users||[];
@@ -1439,6 +1476,173 @@ async function saveSetId(uid){
     err.textContent = (e&&e.code)||e.message||'ошибка';
   }
 }
+
+/* ===================== ПОДДЕРЖКА ===================== */
+const SUP_CSS = '#supFab{position:fixed;right:18px;bottom:74px;z-index:900;background:linear-gradient(135deg,var(--accent),#d946ef);color:#fff;border:none;border-radius:14px;padding:12px 18px;font-weight:700;cursor:pointer;box-shadow:var(--glow)}#supFab:hover{filter:brightness(1.12)}#supFab .verified{background:#22c55e}#supOverlay{position:fixed;inset:0;z-index:950;background:rgba(4,3,10,.72);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}#supOverlay.open{display:flex}#supBox{width:100%;max-width:560px;height:min(640px,92vh);background:var(--card);border:1px solid var(--accent-dark);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow),var(--glow)}#supHead{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--card2)}#supHead b{flex:1;display:flex;align-items:center;gap:6px;flex-wrap:wrap}#supClose{background:none;color:var(--muted);font-size:20px;padding:2px 6px}#supBody{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column}#supFoot{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border)}#supInput{flex:1}.supMsg{max-width:78%;padding:9px 13px;border-radius:14px 14px 14px 4px;background:var(--card2);border:1px solid var(--border);font-size:14px;word-break:break-word;margin:6px 0;align-self:flex-start}.supMsg.me{align-self:flex-end;background:linear-gradient(135deg,var(--accent-dark),#5b32b8);border-color:var(--accent-dark);border-radius:14px 14px 4px 14px}.supMsg .who{font-size:11px;color:var(--muted);margin-bottom:3px;display:flex;align-items:center;gap:5px;flex-wrap:wrap}.supThread{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px}.supThread:hover{background:var(--card2)}.supThread .last{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}.supPill{font-size:11px;font-weight:700;color:#ff8fc7;white-space:nowrap}.supHint{color:var(--muted);text-align:center;margin:auto;font-size:14px}';
+
+let supCur=null, supCb=null, supCbRef=null;
+
+function supUnbind(){
+  if(supCbRef && supCb){ try{ supCbRef.off('value', supCb); }catch(e){} }
+  supCbRef=null; supCb=null;
+}
+function buildSupOverlay(){
+  if($('supOverlay')) return;
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="supOverlay"><div id="supBox">'+
+    '<div id="supHead"><b id="supTitle">Поддержка</b>'+
+    '<button id="supClose" onclick="closeSupport()">✕</button></div>'+
+    '<div id="supBody"></div>'+
+    '<div id="supFoot"><input id="supInput" maxlength="500" placeholder="Сообщение…">'+
+    '<button class="btn small" onclick="supSend()">Отправить</button></div>'+
+    '</div></div>');
+  $('supOverlay').addEventListener('click', e=>{ if(e.target.id==='supOverlay') closeSupport(); });
+  $('supInput').addEventListener('keydown', e=>{ if(e.key==='Enter') supSend(); });
+}
+function closeSupport(){
+  const ov=$('supOverlay'); if(ov) ov.classList.remove('open');
+  supUnbind(); supCur=null;
+}
+function supShowThread(uid, name, siteId, isAdmin){
+  buildSupOverlay();
+  supUnbind();
+  supCur={uid:uid, name:name||'Пользователь', siteId:siteId||0, isAdmin:!!isAdmin};
+  $('supOverlay').classList.add('open');
+  $('supFoot').style.display='flex';
+  $('supTitle').innerHTML = isAdmin
+    ? esc(supCur.name)+' <span class="muted small" style="font-weight:400">ID '+padId(supCur.siteId)+'</span>'
+    : 'Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>';
+  const body=$('supBody');
+  body.innerHTML='<div class="supHint">Загрузка…</div>';
+  supCbRef=db.ref('support/'+uid+'/msgs');
+  supCb=function(s){
+    if(!supCur || supCur.uid!==uid) return;
+    const msgs=[];
+    if(s && s.forEach) s.forEach(x=>{ const v=x.val(); if(v && v.text) msgs.push(Object.assign({}, v, {key:x.key})); });
+    msgs.sort((a,b)=>(a.ts||0)-(b.ts||0));
+    body.innerHTML = msgs.length ? msgs.map(m=>{
+      const fromAdmin = m.from==='admin';
+      const mine = isAdmin ? fromAdmin : !fromAdmin;
+      const label = mine ? 'Вы' : (fromAdmin ? 'Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>' : esc(supCur.name));
+      return '<div class="supMsg '+(mine?'me':'')+'"><div class="who">'+label+(m.ts?' · <span>'+timeStr(m.ts)+'</span>':'')+'</div>'+esc(m.text)+'</div>';
+    }).join('') : '<div class="supHint">'+(isAdmin?'Обращение пока без сообщений':'Напишите ваш вопрос — ответ появится здесь')+'</div>';
+    body.scrollTop = body.scrollHeight;
+  };
+  supCbRef.on('value', supCb, function(e){ console.error('[PayPlay] Поддержка:', e); });
+}
+function supSend(){
+  const inp=$('supInput'); if(!inp) return;
+  const t=(inp.value||'').trim();
+  if(!t || !supCur) return;
+  inp.value='';
+  const now = Date.now();
+  const isAdmin = !!supCur.isAdmin;
+  const supMsg = {
+    from: isAdmin ? 'admin' : 'user',
+    fromUid: isAdmin ? SUPPORT_UID : supCur.uid,
+    fromName: isAdmin ? 'Поддержка' : supCur.name,
+    text: t, ts: now
+  };
+  const dmMsg = {
+    fromUid: supMsg.fromUid, fromName: supMsg.fromName,
+    text: t, ts: now
+  };
+  const metaUp = {};
+  metaUp['participants/'+supCur.uid] = true;
+  metaUp['participants/'+SUPPORT_UID] = true;
+  metaUp['users/'+SUPPORT_UID+'/name'] = 'Поддержка';
+  metaUp['users/'+supCur.uid+'/name'] = supMsg.fromName;
+  metaUp['ids/'+supCur.uid] = supCur.siteId||0;
+  metaUp['ids/'+SUPPORT_UID] = 0;
+  metaUp.lastText = t.slice(0,120);
+  metaUp.lastTs = now;
+  metaUp.lastFrom = supMsg.fromUid;
+  try{
+    db.ref('support/'+supCur.uid+'/msgs').push(supMsg);
+    const key = dmKeyFor(supCur.uid, SUPPORT_UID);
+    db.ref('dmChats/'+key+'/meta').update(metaUp, function(err){
+      if(err){ console.error('[PayPlay] Поддержка meta:', err); return; }
+      db.ref('dmMsgs/'+key).push(dmMsg);
+      if(isAdmin){
+        db.ref('dmChats/'+key+'/meta/unread/'+supCur.uid).transaction(function(v){ return (v||0)+1; });
+      }
+    });
+  }catch(e){
+    console.error('[PayPlay] Поддержка отправка:', e);
+    try{ toast('Не отправилось: '+((e&&e.code)||e.message||'?'), true); }catch(_){}
+  }
+}
+function supShowInbox(){
+  buildSupOverlay();
+  supUnbind();
+  supCur=null;
+  $('supOverlay').classList.add('open');
+  $('supFoot').style.display='none';
+  $('supTitle').textContent='Поддержка — обращения';
+  const body=$('supBody');
+  body.innerHTML='<div class="supHint">Загрузка…</div>';
+  supCbRef=db.ref('support');
+  supCb=function(s){
+    if(supCur) return;
+    const rows=[];
+    if(s && s.forEach) s.forEach(t=>{
+      const uid=t.key; let last=null;
+      t.forEach(m=>{ const v=m.val(); if(v && v.text) last=Object.assign({}, v, {key:m.key}); });
+      const u=(window._users||[]).find(x=>x.uid===uid)||{};
+      rows.push({uid:uid, name:u.name||'Пользователь', siteId:u.id||0, last:last,
+                 needs:!!(last && last.from==='user')});
+    });
+    rows.sort((a,b)=>((b.last&&b.last.ts)||0)-((a.last&&a.last.ts)||0));
+    body.innerHTML = rows.length ? rows.map((r,i)=>
+      '<div class="supThread" data-i="'+i+'"><div style="flex:1;min-width:0">'+
+      '<b>'+esc(r.name)+'</b> <span class="muted small">ID '+padId(r.siteId)+'</span>'+
+      (r.needs?' <span class="supPill">● ждёт ответа</span>':'')+
+      '<div class="last">'+(r.last?((r.last.from==='admin'?'Вы: ':'')+esc(r.last.text)):'')+'</div>'+
+      '</div></div>'
+    ).join('') : '<div class="supHint">Обращений пока нет — как появятся, увидишь здесь</div>';
+    body.querySelectorAll('.supThread').forEach(el=>{
+      el.onclick=function(){
+        const r=rows[+el.getAttribute('data-i')];
+        supShowThread(r.uid, r.name, r.siteId, true);
+      };
+    });
+  };
+  supCbRef.on('value', supCb, function(e){ console.error('[PayPlay] Поддержка inbox:', e); });
+}
+function openSupportChat(){
+  if(!me) return toast('Сначала войдите на сайт', true);
+  if(isOwnerAdmin()){ supShowInbox(); return; }
+  const key = dmKeyFor(me.uid, SUPPORT_UID);
+  db.ref('dmChats/'+key+'/meta').get().then(s=>{
+    const v = s && s.val();
+    if(!(v && v.participants && v.participants[SUPPORT_UID])){
+      return db.ref('dmChats/'+key+'/meta').update({
+        participants: (function(){const o={}; o[me.uid]=true; o[SUPPORT_UID]=true; return o;})(),
+        users: (function(){const o={}; o[SUPPORT_UID]={name:'Поддержка'}; o[me.uid]={name: prof? prof.name:'?'}; return o;})(),
+        ids: (function(){const o={}; o[SUPPORT_UID]=0; o[me.uid]= prof? (prof.id||0):0; return o;})(),
+        unread: {}
+      });
+    }
+    return null;
+  }).then(()=>{
+    dmOpenChatId = key;
+    const path=(location.hash.slice(1)||'home').split('?')[0];
+    if(path==='inbox') openDmChat(key);
+    else location.hash='inbox';
+  }).catch(e=>{ console.error('[PayPlay] Поддержка чат:', e); try{ toast('Не удалось открыть чат поддержки', true); }catch(_){} });
+}
+function openSupport(){
+  if(!me) return toast('Сначала войдите на сайт', true);
+  if(isOwnerAdmin()) supShowInbox();
+  else supShowThread(me.uid, prof? prof.name:'Пользователь', prof? prof.id:0, false);
+}
+(function supInit(){
+  const st=document.createElement('style'); st.textContent=SUP_CSS; document.head.appendChild(st);
+  const fab=document.createElement('button'); fab.id='supFab';
+  fab.innerHTML='💬 Поддержка <span class="verified" title="Подтверждённый пользователь">✓</span>';
+  fab.onclick=openSupport;
+  document.body.appendChild(fab);
+})();
 
 /* Старт */
 if(!location.hash) location.hash='home';
