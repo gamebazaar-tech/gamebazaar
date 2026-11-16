@@ -544,16 +544,23 @@ listen('lots', snap=>{
     if(path==='admin') refreshAdminLive();
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
 });
-window._users = null;
-listen('users', snap=>{
+window._users = window._users || null;
+const applyUsers = (arr) => {
+  arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
+  const cur = Array.isArray(window._users) ? window._users.length : 0;
+  if (arr.length >= cur) { window._users = arr; refreshAdminLive(); }
+};
+db.ref('users').get().then(s => {
+  const a=[]; if(s && s.forEach) s.forEach(u=>a.push({uid:u.key, ...(u.val()||{})}));
+  applyUsers(a);
+}).catch(e=>toast('Ошибка загрузки пользователей: '+e.message, true));
+listen('users', snap => {
   try{
-    const arr=[];
-    if(snap && snap.forEach) snap.forEach(u=>arr.push({uid:u.key, ...(u.val()||{})}));
-    arr.sort((a,b)=>Number(a.id||0)-Number(b.id||0));
-    window._users = arr;
-    refreshAdminLive();
+    const a=[]; if(snap && snap.forEach) snap.forEach(u=>a.push({uid:u.key, ...(u.val()||{})}));
+    applyUsers(a);
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
 });
+
 
 /* ===================== ГЛАВНАЯ ===================== */
 function viewHome(){
