@@ -1582,7 +1582,7 @@ function onAllSupport(snap){
   supCache={};
   if(snap && snap.forEach) snap.forEach(function(t){
     var uid=t.key, msgs=[];
-    if(t.forEach) t.forEach(function(x){ var v=x.val()||{}; if(v && v.text) msgs.push(v); });
+    var mm=t.child('msgs'); if(mm && mm.forEach) mm.forEach(function(x){ var v=x.val()||{}; if(v && v.text) msgs.push(v); });
     msgs.sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
     var last=msgs.length? msgs[msgs.length-1] : null;
     supCache[uid]={last:last, ts:last? (last.ts||0):0, msgs:msgs};
@@ -1600,7 +1600,7 @@ function onAllSupport(snap){
     });
     if(fresh.length) notify(fresh);
   }
-  updateBadge(); patchDmList();
+  updateBadge(); patchDmList(); try{ var supT=document.getElementById('ppSupTitle'); if(supT && supT.textContent==='Поддержка — о
 }
 function onMySupport(snap){
   var g=G(); if(!g) return;
@@ -1608,12 +1608,12 @@ function onMySupport(snap){
   if(snap && snap.forEach) snap.forEach(function(x){ var v=x.val()||{}; if(v && v.text) msgs.push(v); });
   msgs.sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
   supCache[g.uid]={msgs:msgs, last:(msgs.length? msgs[msgs.length-1]:null), ts:(msgs.length? (msgs[msgs.length-1].ts||0):0)};
-  updateBadge(); patchDmList();
+  updateBadge(); patchDmList(); try{ var supT=document.getElementById('ppSupTitle'); if(supT && supT.textContent==='Поддержка — о
 }
 function waitingCount(){ var n=0; Object.keys(supCache).forEach(function(uid){ var c=supCache[uid]; if(c && c.last && c.last.from==='user') n++; }); return n; }
 function readMark(uid){ try{ return Number(localStorage.getItem('ppSupSeen_'+uid))||0; }catch(e){ return 0; } }
 function unreadFor(uid){ var c=supCache[uid]; if(!c) return 0; var seen=readMark(uid), n=0; (c.msgs||[]).forEach(function(m){ if(m.from==='admin' && (m.ts||0)>seen) n++; }); return n; }
-function supMarkRead(uid){ try{ localStorage.setItem('ppSupSeen_'+uid, String(Date.now())); }catch(e){} updateBadge(); patchDmList(); }
+function supMarkRead(uid){ try{ localStorage.setItem('ppSupSeen_'+uid, String(Date.now())); }catch(e){} updateBadge(); patchDmList(); try{ var supT=document.getElementById('ppSupTitle'); if(supT && supT.textContent==='Поддержка — о }
 function updateBadge(){
   var b=document.getElementById('ppSupBadge'), fab=document.getElementById('ppSupFab');
   if(!b || !fab) return;
