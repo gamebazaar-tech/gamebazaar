@@ -292,7 +292,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.6 Space News</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.7 Space News</div>
   </div>
 </footer>
 
@@ -616,6 +616,17 @@ listen('lots', snap=>{
     if(path==='admin') refreshAdminLive();
   }catch(e){ toast('Ошибка списка лотов: '+e.message, true); }
 });
+/* Подстраховка: если живой слушатель не сработал (медленное соединение,
+   сбой сети и т.п.), один раз загружаем лоты напрямую из базы */
+db.ref('lots').get().then(s=>{
+  if(window._lots && window._lots.length) return;
+  const arr=[];
+  if(s && s.forEach) s.forEach(l=>arr.push({id:l.key, ...(l.val()||{})}));
+  arr.sort((a,b)=>b.createdAt-a.createdAt);
+  window._lots = arr;
+  renderLots(); renderMyLots();
+  console.log('[PayPlay] Резервная загрузка лотов:', arr.length);
+}).catch(e=>console.error('[PayPlay] Резервная загрузка лотов:', e));
 window._users = null;
 listen('users', snap=>{
   try{
@@ -737,7 +748,7 @@ function renderLots(){
   const g = $('lotsGrid'); if(!g) return;
   const all = window._lots;
   if(!all){ g.innerHTML = '<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>'; return; }
-  const list = all.filter(l=> l.status!=='sold' && (!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
+  const list = all.filter(l=>l.status!=='sold'&&(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       ${lotImgSrc(l)?`<img class="lot-thumb" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
@@ -825,13 +836,13 @@ async function confirmBuy(id){
   const l = snap && snap.val ? snap.val() : null;
   if(!l || l.status==='sold') return toast('Лот уже недоступен', true);
   if(Number(prof.balance||0) < Number(l.price)) return toast('Недостаточно средств на балансе', true);
-  // Бронируем лот транзакцией: кто подтвердил первым, тот и купил
-  const hold = await db.ref('lots/'+id+'/status').transaction(cur => (cur==='sold'? undefined : 'sold'));
-  if(!hold || !hold.committed) return toast('Лот уже купил кто-то другой', true);
-  const ref = db.ref('users/'+me.uid+'/balance');
-  const res = await ref.transaction(b => (b||0) - Number(l.price));
-  if(!res.committed){
-    await db.ref('lots/'+id+'/status').set('active');
+  /* Бронь лота транзакцией: два одновременных покупателя не купят один лот дважды.
+     Победит тот, кто подтвердил первым; у второго покупка не пройдёт и деньги не спишутся. */
+  const res = await db.ref('lots/'+id+'/status').transaction(cur => (cur==='sold') ? undefined : 'sold');
+  if(!res.committed) return toast('Лот уже купил кто-то другой', true);
+  const pay = await db.ref('users/'+me.uid+'/balance').transaction(b => (b||0) - Number(l.price));
+  if(!pay.committed){
+    await db.ref('lots/'+id+'/status').set('active'); /* списание не прошло — лот возвращается в продажу */
     return toast('Ошибка списания', true);
   }
   await db.ref('lots/'+id).update({buyerUid:me.uid, buyerName:prof.name||'?', soldAt:Date.now()});
@@ -839,27 +850,25 @@ async function confirmBuy(id){
   log('Покупка', 'лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   await pushNotif(l.ownerUid, (prof.name||'Покупатель')+' купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   toast('Покупка успешна! Лот ваш 🎉');
-  render();
-  // Через 1,5 секунды перекидываем покупателя в личку с продавцом
-  setTimeout(()=>{ finishBuyDm(l); }, 1500);
-}
-async function finishBuyDm(lot){
-  if(!me || !lot || !lot.ownerUid || lot.ownerUid===me.uid) return;
-  try{
-    await startDmChat(lot.ownerUid, lot.ownerName||'Продавец', null, 0);
-    if((location.hash.slice(1)||'').split('?')[0]!=='inbox') location.hash='inbox';
-    const key = dmKeyFor(me.uid, lot.ownerUid);
-    const text = 'Здравствуйте! Я только что купил ваш лот «'+lot.title+'» за '+fmt(lot.price)+' ₽. Давайте обсудим передачу.';
-    const msg = {fromUid:me.uid, fromName:prof? prof.name:'?', fromPhoto: prof? (prof.photo||null):null, text, ts:Date.now()};
-    await db.ref('dmMsgs/'+key).push(msg);
-    await db.ref('dmChats/'+key+'/meta').update({
-      lastText:text.slice(0,120), lastTs:Date.now(), lastFrom:me.uid,
-      ['users/'+me.uid+'/name']: prof? prof.name:'?',
-      ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
-      ['ids/'+me.uid]: prof? (prof.id||0):0
-    });
-    await db.ref('dmChats/'+key+'/meta/unread/'+lot.ownerUid).transaction(v=>(v||0)+1);
-  }catch(e){ console.error('[PayPlay] Чат после покупки:', e); }
+  /* Через 1,5 секунды автоматически открываем чат с продавцом
+     и отправляем первое сообщение — как на DIP-X */
+  const sellerUid = l.ownerUid, sellerName = l.ownerName||'Продавец', lotTitle = l.title, lotPrice = Number(l.price);
+  setTimeout(async ()=>{
+    try{
+      await startDmChat(sellerUid, sellerName, null, 0);
+      location.hash='inbox';
+      const key = dmKeyFor(me.uid, sellerUid);
+      const text = 'Здравствуйте! Я только что купил ваш лот «'+lotTitle+'» за '+fmt(lotPrice)+' ₽. Давайте обсудим передачу';
+      const msg = {fromUid:me.uid, fromName: prof? prof.name:'?', fromPhoto: prof? (prof.photo||null):null, text, ts:Date.now()};
+      await db.ref('dmMsgs/'+key).push(msg);
+      await db.ref('dmChats/'+key+'/meta').update({
+        lastText:text.slice(0,120), lastTs:msg.ts, lastFrom:me.uid,
+        ['users/'+me.uid+'/name']: prof? prof.name:'?',
+        ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
+        ['ids/'+me.uid]: prof? (prof.id||0):0
+      });
+    }catch(e){ console.error('[PayPlay] Автопереход в чат:', e); }
+  }, 1500);
 }
 
 function attachLotChat(lotId, lot){
