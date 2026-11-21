@@ -292,7 +292,7 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
       <a href="https://vk.ru/sergeyssssssssss" target="_blank" rel="noopener">Соц. сети (ВК)</a>
       <a href="https://vk.me/club243328738" target="_blank" rel="noopener">Бот пополнения</a>
     </div>
-    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.5 Space News</div>
+    <div class="muted small">© Pay Play — маркетплейс игровых ценностей · v5.6 Space News</div>
   </div>
 </footer>
 
@@ -335,7 +335,7 @@ function listen(path, cb){
 }
 
 const GAMES = ['Black Russia','PUBG','Standoff 2'];
-const CATEGORIES = ['Игровая валюта','Аккаунт','Скины','Другое'];
+const CATEGORIES = ['Игровая валюта','Аккаунт','Скины','Кейсы и предметы','Прокачка и услуги','Другое'];
 const MIN_DEPOSIT = 25;
 const OWNER_NICK = 'Sergey_Sergeev';
 const VK_BOT_LINK = 'https://vk.me/club243328738';
@@ -737,7 +737,7 @@ function renderLots(){
   const g = $('lotsGrid'); if(!g) return;
   const all = window._lots;
   if(!all){ g.innerHTML = '<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>'; return; }
-  const list = all.filter(l=>l.status!=='sold'&&(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
+  const list = all.filter(l=> l.status!=='sold' && (!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       ${lotImgSrc(l)?`<img class="lot-thumb" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
@@ -825,55 +825,41 @@ async function confirmBuy(id){
   const l = snap && snap.val ? snap.val() : null;
   if(!l || l.status==='sold') return toast('Лот уже недоступен', true);
   if(Number(prof.balance||0) < Number(l.price)) return toast('Недостаточно средств на балансе', true);
-  // 1. Бронируем лот: транзакция гарантирует, что купит только первый
-  const t = await db.ref('lots/'+id).transaction(cur=>{
-    if(!cur || cur.status==='sold') return; // прервать — уже продан
-    return {...cur, status:'sold', buyerUid:me.uid, buyerName:prof.name||'?'};
-  });
-  if(!t.committed) return toast('Лот уже купил кто-то другой', true);
-  // 2. Списание с баланса
+  // Бронируем лот транзакцией: кто подтвердил первым, тот и купил
+  const hold = await db.ref('lots/'+id+'/status').transaction(cur => (cur==='sold'? undefined : 'sold'));
+  if(!hold || !hold.committed) return toast('Лот уже купил кто-то другой', true);
   const ref = db.ref('users/'+me.uid+'/balance');
   const res = await ref.transaction(b => (b||0) - Number(l.price));
   if(!res.committed){
-    await db.ref('lots/'+id).update({status:'active', buyerUid:null, buyerName:null});
+    await db.ref('lots/'+id+'/status').set('active');
     return toast('Ошибка списания', true);
   }
+  await db.ref('lots/'+id).update({buyerUid:me.uid, buyerName:prof.name||'?', soldAt:Date.now()});
   await db.ref('purchases').push({lotId:id, title:l.title, buyerUid:me.uid, sellerUid:l.ownerUid, price:Number(l.price), ts:Date.now()});
   log('Покупка', 'лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   await pushNotif(l.ownerUid, (prof.name||'Покупатель')+' купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   toast('Покупка успешна! Лот ваш 🎉');
-  // 3. Лот пропадает у всех: чистим локальный кэш, слушатели подтянут удаление сами
-  if(window._lots) window._lots = window._lots.filter(x=>x.id!==id);
-  renderLots(); renderMyLots();
-  // 4. Через 1,5 секунды — личный чат с продавцом + первое сообщение
-  setTimeout(async ()=>{
-    if(!(me && prof)) return;
-    try{
-      await startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0);
-      const key = dmOpenChatId;
-      if(key){
-        const hello = 'Здравствуйте! Я только что купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽. Давайте обсудим передачу.';
-        const msg = {
-          fromUid:me.uid, fromName:prof? prof.name:'?',
-          fromPhoto: prof? (prof.photo||null):null,
-          text:hello, ts:Date.now()
-        };
-        await db.ref('dmMsgs/'+key).push(msg);
-        const updates = {
-          lastText: hello.slice(0,120), lastTs: Date.now(), lastFrom: me.uid,
-          ['users/'+me.uid+'/name']: prof? prof.name:'?',
-          ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
-          ['ids/'+me.uid]: prof? (prof.id||0):0
-        };
-        await db.ref('dmChats/'+key+'/meta').update(updates);
-        if(l.ownerUid) await db.ref('dmChats/'+key+'/meta/unread/'+l.ownerUid).transaction(v=>(v||0)+1);
-      }
-      location.hash='inbox';
-    }catch(e){
-      console.error('[PayPlay] Авто-переход в чат:', e);
-      location.hash='inbox';
-    }
-  }, 1500);
+  render();
+  // Через 1,5 секунды перекидываем покупателя в личку с продавцом
+  setTimeout(()=>{ finishBuyDm(l); }, 1500);
+}
+async function finishBuyDm(lot){
+  if(!me || !lot || !lot.ownerUid || lot.ownerUid===me.uid) return;
+  try{
+    await startDmChat(lot.ownerUid, lot.ownerName||'Продавец', null, 0);
+    if((location.hash.slice(1)||'').split('?')[0]!=='inbox') location.hash='inbox';
+    const key = dmKeyFor(me.uid, lot.ownerUid);
+    const text = 'Здравствуйте! Я только что купил ваш лот «'+lot.title+'» за '+fmt(lot.price)+' ₽. Давайте обсудим передачу.';
+    const msg = {fromUid:me.uid, fromName:prof? prof.name:'?', fromPhoto: prof? (prof.photo||null):null, text, ts:Date.now()};
+    await db.ref('dmMsgs/'+key).push(msg);
+    await db.ref('dmChats/'+key+'/meta').update({
+      lastText:text.slice(0,120), lastTs:Date.now(), lastFrom:me.uid,
+      ['users/'+me.uid+'/name']: prof? prof.name:'?',
+      ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
+      ['ids/'+me.uid]: prof? (prof.id||0):0
+    });
+    await db.ref('dmChats/'+key+'/meta/unread/'+lot.ownerUid).transaction(v=>(v||0)+1);
+  }catch(e){ console.error('[PayPlay] Чат после покупки:', e); }
 }
 
 function attachLotChat(lotId, lot){
