@@ -250,11 +250,6 @@ footer{border-top:1px solid var(--border);background:rgba(10,8,20,.85);margin-to
 @keyframes starDrift{from{transform:translateY(0)}to{transform:translateY(-360px)}}
 .shoot{position:absolute;width:130px;height:2px;background:linear-gradient(90deg,rgba(255,255,255,.95),transparent);border-radius:2px;opacity:0;transform:rotate(-30deg);animation:shootFly 1.1s ease-out forwards}
 @keyframes shootFly{0%{opacity:0;transform:rotate(-30deg) translateX(0)}10%{opacity:1}100%{opacity:0;transform:rotate(-30deg) translateX(60vw)}}
-/* Автовыдача и системные сообщения */
-.tag.auto{color:var(--accent2);border-color:var(--accent-dark)}
-.msg.sys{justify-content:center}
-.msg.sys .bubble{background:var(--card2);color:var(--muted);font-size:13px}
-.auto-pre{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:14px;margin:10px 0}
 </style>
 </head>
 <body>
@@ -430,6 +425,7 @@ function viewAuth(mode){
     <label>Пароль</label><input id="authPass" type="password" placeholder="Минимум 6 символов">
     <div class="err" id="authErr"></div>
     <button class="btn wide" style="margin-top:8px" onclick="${reg?'doRegister()':'doLogin()'}">${reg?'Создать аккаунт':'Войти'}</button>
+    ${reg?'':'<button class="btn ghost wide small" style="margin-top:10px" onclick="doResetPass()">Забыли пароль?</button>'}
   </div>`;
 }
 async function assignUserId(name){
@@ -470,6 +466,22 @@ async function doLogin(){
   }catch(e){
     console.error('[PayPlay] Вход:', e);
     $('authErr').textContent = String(e.message||e).replace('Firebase: ','');
+  }
+}
+async function doResetPass(){
+  const email = $('authEmail').value.trim();
+  if(!email) return $('authErr').textContent='Сначала введите ваш email в поле выше';
+  try{
+    await auth.sendPasswordResetEmail(email);
+    toast('Письмо для сброса отправлено на '+email);
+    $('authErr').textContent = '';
+  }catch(e){
+    console.error('[PayPlay] Сброс пароля:', e);
+    const code = e && e.code || '';
+    if(code==='auth/invalid-email') $('authErr').textContent='Некорректный email';
+    else if(code==='auth/user-not-found') $('authErr').textContent='Аккаунт с таким email не найден';
+    else if(code==='auth/too-many-requests') $('authErr').textContent='Слишком много попыток — подождите немного';
+    else $('authErr').textContent = String(e.message||e).replace('Firebase: ','');
   }
 }
 function doLogout(){ auth.signOut(); location.hash='home'; }
@@ -599,8 +611,6 @@ listen('lots', snap=>{
     window._lots = arr;
     renderLots();
     renderMyLots();
-    renderMyPurchases();
-    renderPurchaseMsgs();
     const path=(location.hash.slice(1)||'home').split('?')[0];
     if(path==='lot' && curLotId) renderLotPage();
     if(path==='admin') refreshAdminLive();
@@ -615,16 +625,6 @@ listen('users', snap=>{
     window._users = arr;
     refreshAdminLive();
   }catch(e){ toast('Ошибка списка пользователей: '+e.message, true); }
-});
-
-window._purchases = null;
-listen('purchases', snap=>{
-  try{
-    const arr=[]; if(snap && snap.forEach) snap.forEach(p=>arr.push({id:p.key, ...(p.val()||{})}));
-    arr.sort((a,b)=>(b.ts||0)-(a.ts||0));
-    window._purchases = arr;
-    renderMyPurchases();
-  }catch(e){ toast('Ошибка списка покупок: '+e.message, true); }
 });
 
 /* Прямая загрузка списка пользователей для админки.
@@ -741,7 +741,7 @@ function renderLots(){
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       ${lotImgSrc(l)?`<img class="lot-thumb" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
-      <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.delivery==='auto'?'<span class="tag auto">⚡ Авто</span>':''}${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
+      <div class="row" style="gap:6px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.status==='sold'?'<span class="tag sold">Продан</span>':''}</div>
       <div class="lt">${esc(l.title)}</div>
       <div class="ld">${esc(l.desc)}</div>
       <div class="lfoot"><span class="price">${fmt(l.price)} ₽</span><span class="muted small">${namePlate(l.ownerUid, l.ownerName)}</span></div>
@@ -790,11 +790,10 @@ function renderLotPage(force){
   app.innerHTML = `
     <div class="row small" style="margin-bottom:10px"><a href="#catalog">← Назад в каталог</a></div>
     <div class="card">
-      <div class="row" style="gap:8px;margin-bottom:10px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${l.delivery==='auto'?'<span class="tag auto">⚡ Авто</span>':''}${sold?'<span class="tag sold">Продан</span>':''}</div>
+      <div class="row" style="gap:8px;margin-bottom:10px"><span class="tag game">${esc(l.game)}</span><span class="tag">${esc(l.category)}</span>${sold?'<span class="tag sold">Продан</span>':''}</div>
       <h2>${esc(l.title)}${whoTag(l.ownerName, l.ownerUid)}</h2>
       ${lotImgSrc(l)?`<img class="lot-img-big" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
       <p class="muted" style="margin:10px 0 4px;white-space:pre-wrap">${esc(l.desc)}</p>
-      <div id="autoBox"></div>
       <div class="row" style="margin:16px 0;justify-content:space-between">
         <span class="price" style="font-size:24px">${fmt(l.price)} ₽</span>
         <span class="muted small">Продавец: <b style="color:var(--text)">${namePlate(l.ownerUid, l.ownerName)}</b></span>
@@ -811,13 +810,6 @@ function renderLotPage(force){
     <div class="section-title">Чат с продавцом</div>
     <div class="card" id="lotChat"></div>`;
   if(me) attachLotChat(id, l);
-  if(me && sold && l.delivery==='auto' && l.buyerUid===me.uid){
-    db.ref('autoData/'+id).get().then(s=>{
-      const box=$('autoBox'); if(!box || curLotPageId!==id) return;
-      const t = (s && s.exists) ? ((s.val()||{}).text||'') : '';
-      box.innerHTML = t? '<div class="notice" style="margin-top:12px"><b>⚡ Данные товара:</b><div class="auto-pre">'+esc(t)+'</div></div>' : '';
-    }).catch(()=>{});
-  }
 }
 function buyLot(id){
   modal('<h3>Подтверждение покупки</h3>'+
@@ -836,27 +828,12 @@ async function confirmBuy(id){
   const ref = db.ref('users/'+me.uid+'/balance');
   const res = await ref.transaction(b => (b||0) - Number(l.price));
   if(!res.committed) return toast('Ошибка списания', true);
-  await db.ref('lots/'+id).update({status:'sold', buyerUid:me.uid, buyerName:prof.name||'?', soldAt:Date.now()});
-  await db.ref('purchases').push({lotId:id, title:l.title, buyerUid:me.uid, sellerUid:l.ownerUid, price:Number(l.price), delivery:l.delivery||'manual', ts:Date.now()});
-  await db.ref('lotChats/'+id).push({
-    fromUid:'system', fromName:'Pay Play', system:true,
-    text:'✅ Лот продан. Покупатель: '+(prof.name||'?')+'. Чат остаётся открытым для продавца и покупателя.',
-    ts:Date.now()
-  });
+  await db.ref('lots/'+id).update({status:'sold', buyerUid:me.uid, buyerName:prof.name||'?'});
+  await db.ref('purchases').push({lotId:id, title:l.title, buyerUid:me.uid, sellerUid:l.ownerUid, price:Number(l.price), ts:Date.now()});
   log('Покупка', 'лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   await pushNotif(l.ownerUid, (prof.name||'Покупатель')+' купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽');
-  if((l.delivery||'manual')==='auto'){
-    const s = await db.ref('autoData/'+id).get();
-    const dataTxt = (s && s.exists) ? ((s.val()||{}).text||'') : '';
-    modal('<h3>⚡ Автовыдача</h3>'+
-      (dataTxt
-        ? '<p class="muted small">Данные товара. Они также сохранены в профиле, раздел «Мои покупки».</p><div class="auto-pre">'+esc(dataTxt)+'</div>'
-        : '<p class="muted small">Данные товара не найдены — напишите продавцу в чате лота.</p>')+
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeModal();location.hash=\'profile\'">Открыть в профиле</button></div>');
-  } else {
-    toast('Покупка успешна! Лот ваш 🎉');
-    location.hash='profile';
-  }
+  toast('Покупка успешна! Лот ваш 🎉');
+  render();
 }
 
 function attachLotChat(lotId, lot){
@@ -882,9 +859,8 @@ function drawChat(lotId, lot){
   const inpSt = preserveInput('chatInput');
   const msgs = chatCache[lotId]||{};
   const list = Object.keys(msgs).map(k=>({key:k, ...msgs[k]})).filter(m=>m.text).sort((a,b)=>(a.ts||0)-(b.ts||0));
-  const canWrite = me && lot && (lot.status!=='sold' || lot.ownerUid===me.uid || lot.buyerUid===me.uid);
+  const canWrite = me && lot && !['sold'].includes(lot.status);
   const html = list.map(m=>{
-    if(m.fromUid==='system' || m.system) return '<div class="msg sys"><div class="ava">🤖</div><div><div class="bubble">'+esc(m.text)+'</div><div class="meta">Pay Play · '+timeStr(m.ts)+'</div></div></div>';
     const mineMsg = me && m.fromUid===me.uid;
     const ava = m.fromPhoto ? '<img src="'+esc(m.fromPhoto)+'" alt="">' : esc((m.fromName||'?')[0].toUpperCase());
     return `
@@ -903,14 +879,12 @@ function drawChat(lotId, lot){
                onkeydown="if(event.key==='Enter')sendChatMsg('${lotId}')">
         <button class="btn" onclick="sendChatMsg('${lotId}')">Отправить</button>
       </div>`
-    : '<div class="locked-box" style="margin-top:12px">'+(me? (lot&&lot.status==='sold'? 'Чат закрыт — лот продан. Доступен только просмотр.' : 'Вы не участник этого чата.') : 'Войдите, чтобы писать в чат.')+'</div>');
+    : '<div class="locked-box" style="margin-top:12px">'+(me? 'Чат закрыт — лот продан.' : 'Войдите, чтобы писать в чат.')+'</div>');
   restoreInput('chatInput', inpSt);
   const w = $('chatList'); if(w) w.scrollTop = w.scrollHeight;
 }
 async function sendChatMsg(lotId){
   const inp = $('chatInput'); if(!inp) return;
-  const l0 = (window._lots||[]).find(x=>x.id===lotId);
-  if(l0 && l0.status==='sold' && l0.ownerUid!==me.uid && l0.buyerUid!==me.uid) return toast('Чат закрыт — лот продан', true);
   const text = inp.value.trim();
   if(!text) return;
   inp.value='';
@@ -1181,15 +1155,6 @@ function viewSell(){
       <textarea id="sellDesc" maxlength="1000" placeholder="Опишите товар: что входит, как передадите, сроки"></textarea>
       <label>Цена, ₽</label>
       <input id="sellPrice" type="number" min="1" placeholder="Например: 500">
-      <label>Способ выдачи</label>
-      <select id="sellDelivery" onchange="toggleAutoData()">
-        <option value="manual">🤝 Выдаю сам — через чат лота</option>
-        <option value="auto">⚡ Автовыдача — покупатель получит данные сразу после оплаты</option>
-      </select>
-      <div id="autoBlock" style="display:none">
-        <label>Данные товара (логин/пароль/код)</label>
-        <textarea id="sellAutoData" maxlength="1000" placeholder="Покупатель увидит это сразу после оплаты"></textarea>
-      </div>
       <label>Ссылка на картинку (необязательно, до 400 символов)</label>
       <input id="sellImg" placeholder="https://... прямая ссылка на изображение">
       <img id="sellPreview" class="img-preview" style="display:none" alt="">
@@ -1202,10 +1167,6 @@ function viewSell(){
     if(v){ p.src=v; p.style.display='block'; } else p.style.display='none';
   });
 }
-function toggleAutoData(){
-  const auto = $('sellDelivery').value==='auto';
-  $('autoBlock').style.display = auto ? 'block':'none';
-}
 async function submitLot(){
   if(!me) return;
   const game = $('sellGame').value;
@@ -1214,23 +1175,17 @@ async function submitLot(){
   const desc = $('sellDesc').value.trim();
   const price = Number($('sellPrice').value);
   let img = $('sellImg').value.trim();
-  const delivery = $('sellDelivery') ? $('sellDelivery').value : 'manual';
-  const autoTxt = $('sellAutoData') ? $('sellAutoData').value.trim() : '';
   if(title.length<3) return $('sellErr').textContent='Название — минимум 3 символа';
   if(desc.length<5) return $('sellErr').textContent='Добавьте описание лота';
   if(!price || price<=0) return $('sellErr').textContent='Укажите цену больше нуля';
-  if(delivery==='auto' && autoTxt.length<3) return $('sellErr').textContent='Для автовыдачи добавьте данные товара';
   if(img.length>400) return $('sellErr').textContent='Ссылка на картинку слишком длинная — используй обычную короткую ссылку';
   try{
-    const lotRef = db.ref('lots').push();
-    if(delivery==='auto') await db.ref('autoData/'+lotRef.key).set({text:autoTxt, ts:Date.now()});
-    await lotRef.set({
+    await db.ref('lots').push({
       game, category, title, desc, price,
       img: img||GAME_IMG[game]||null,
-      ownerUid:me.uid, ownerName:prof? prof.name:'?', status:'active', createdAt:Date.now(),
-      delivery: delivery
+      ownerUid:me.uid, ownerName:prof? prof.name:'?', status:'active', createdAt:Date.now()
     });
-    log('Выставлен лот', '«'+title+'» за '+fmt(price)+' ₽'+(delivery==='auto'?' (автовыдача)':''));
+    log('Выставлен лот', '«'+title+'» за '+fmt(price)+' ₽');
     toast('Лот опубликован!');
     location.hash='profile';
   }catch(e){
@@ -1269,42 +1224,6 @@ async function confirmRemoveLot(id){
   log('Удалён лот', id);
   toast('Лот удалён');
 }
-function renderMyPurchases(){
-  const box = $('myPurchases'); if(!box) return;
-  if(!me){ box.innerHTML = '<div class="locked-box">Войдите, чтобы видеть покупки</div>'; return; }
-  const list = (window._purchases||[]).filter(p=>p.buyerUid===me.uid);
-  box.innerHTML = list.length ? list.map(p=>{
-    const l = (window._lots||[]).find(x=>x.id===p.lotId);
-    return '<div class="log-row">'+
-      '<span class="tag game">'+(l? esc(l.game):'—')+'</span>'+
-      '<span style="font-weight:700">'+esc(p.title)+'</span>'+
-      '<span class="price">'+fmt(p.price)+' ₽</span>'+
-      (l && l.delivery==='auto'? '<span class="tag auto">⚡ Авто</span><button class="btn small ghost" onclick="showAutoData(\''+p.lotId+'\')">Данные</button>':'')+
-      '<a class="small" href="#lot?id='+p.lotId+'">💬 чат</a>'+
-    '</div>';
-  }).join('') : '<div class="locked-box">Покупок пока нет. <a href="#catalog">В каталог</a></div>';
-}
-function renderPurchaseMsgs(){
-  const box = $('purchaseMsgs'); if(!box) return;
-  if(!me){ box.innerHTML = '<div class="locked-box">Войдите, чтобы видеть переписки</div>'; return; }
-  const lots = (window._lots||[]).filter(l=> l.status==='sold' && (l.buyerUid===me.uid || l.ownerUid===me.uid));
-  box.innerHTML = lots.length ? lots.map(l=>
-    '<div class="log-row">'+
-      '<span class="tag game">'+esc(l.game)+'</span>'+
-      '<span style="font-weight:700">'+esc(l.title)+'</span>'+
-      (l.buyerUid===me.uid? '<span class="tag">Вы покупали</span>':'<span class="tag">Вы продавали</span>')+
-      '<a class="small" href="#lot?id='+l.id+'">открыть чат</a>'+
-    '</div>').join('')
-  : '<div class="locked-box">Пока нет переписок по проданным и купленным лотам.</div>';
-}
-function showAutoData(lotId){
-  db.ref('autoData/'+lotId).get().then(s=>{
-    const t = (s && s.exists) ? ((s.val()||{}).text||'') : '';
-    modal('<h3>⚡ Данные товара</h3>'+
-      (t? '<div class="auto-pre">'+esc(t)+'</div>' : '<p class="muted small">Данные не найдены — напишите продавцу в чате лота.</p>')+
-      '<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" onclick="closeModal()">Закрыть</button></div>');
-  }).catch(e=>toast('Ошибка: '+e.message, true));
-}
 function viewProfile(){
   if(!me){ $('app').innerHTML = viewAuth(); return; }
   if(!prof){ $('app').innerHTML = '<div class="locked-box">Загрузка профиля… Если висит долго — смотри уведомления справа внизу.</div>'; return; }
@@ -1331,12 +1250,8 @@ function viewProfile(){
       <div class="muted small" style="margin-top:10px">Пополнение идёт через нашего ВК-бота: нажмите кнопку, и откроется чат с ботом, где вам дадут инструкцию.</div>
     </div>
     <div class="section-title">Мои лоты</div>
-    <div class="card" id="myLots"></div>
-    <div class="section-title">Мои покупки</div>
-    <div class="card" id="myPurchases"></div>
-    <div class="section-title">💬 Сообщения по покупкам</div>
-    <div class="card" id="purchaseMsgs"></div>`;
-  renderMyLots(); renderMyPurchases(); renderPurchaseMsgs();
+    <div class="card" id="myLots"></div>`;
+  renderMyLots();
 }
 function editProfile(){
   modal(`
