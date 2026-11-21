@@ -737,7 +737,7 @@ function renderLots(){
   const g = $('lotsGrid'); if(!g) return;
   const all = window._lots;
   if(!all){ g.innerHTML = '<div class="locked-box" style="grid-column:1/-1">Загрузка лотов…</div>'; return; }
-  const list = all.filter(l=>(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
+  const list = all.filter(l=>l.status!=='sold'&&(!catGame||l.game===catGame)&&(!catCat||l.category===catCat));
   g.innerHTML = list.length ? list.map(l=>`
     <div class="lot-card" onclick="location.hash='lot?id=${l.id}'">
       ${lotImgSrc(l)?`<img class="lot-thumb" src="${lotImgSrc(l)}" alt="" onerror="this.style.display='none'">`:''}
@@ -825,15 +825,55 @@ async function confirmBuy(id){
   const l = snap && snap.val ? snap.val() : null;
   if(!l || l.status==='sold') return toast('Лот уже недоступен', true);
   if(Number(prof.balance||0) < Number(l.price)) return toast('Недостаточно средств на балансе', true);
+  // 1. Бронируем лот: транзакция гарантирует, что купит только первый
+  const t = await db.ref('lots/'+id).transaction(cur=>{
+    if(!cur || cur.status==='sold') return; // прервать — уже продан
+    return {...cur, status:'sold', buyerUid:me.uid, buyerName:prof.name||'?'};
+  });
+  if(!t.committed) return toast('Лот уже купил кто-то другой', true);
+  // 2. Списание с баланса
   const ref = db.ref('users/'+me.uid+'/balance');
   const res = await ref.transaction(b => (b||0) - Number(l.price));
-  if(!res.committed) return toast('Ошибка списания', true);
-  await db.ref('lots/'+id).update({status:'sold', buyerUid:me.uid, buyerName:prof.name||'?'});
+  if(!res.committed){
+    await db.ref('lots/'+id).update({status:'active', buyerUid:null, buyerName:null});
+    return toast('Ошибка списания', true);
+  }
   await db.ref('purchases').push({lotId:id, title:l.title, buyerUid:me.uid, sellerUid:l.ownerUid, price:Number(l.price), ts:Date.now()});
   log('Покупка', 'лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   await pushNotif(l.ownerUid, (prof.name||'Покупатель')+' купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽');
   toast('Покупка успешна! Лот ваш 🎉');
-  render();
+  // 3. Лот пропадает у всех: чистим локальный кэш, слушатели подтянут удаление сами
+  if(window._lots) window._lots = window._lots.filter(x=>x.id!==id);
+  renderLots(); renderMyLots();
+  // 4. Через 1,5 секунды — личный чат с продавцом + первое сообщение
+  setTimeout(async ()=>{
+    if(!(me && prof)) return;
+    try{
+      await startDmChat(l.ownerUid, l.ownerName||'Продавец', null, 0);
+      const key = dmOpenChatId;
+      if(key){
+        const hello = 'Здравствуйте! Я только что купил ваш лот «'+l.title+'» за '+fmt(l.price)+' ₽. Давайте обсудим передачу.';
+        const msg = {
+          fromUid:me.uid, fromName:prof? prof.name:'?',
+          fromPhoto: prof? (prof.photo||null):null,
+          text:hello, ts:Date.now()
+        };
+        await db.ref('dmMsgs/'+key).push(msg);
+        const updates = {
+          lastText: hello.slice(0,120), lastTs: Date.now(), lastFrom: me.uid,
+          ['users/'+me.uid+'/name']: prof? prof.name:'?',
+          ['users/'+me.uid+'/photo']: prof? (prof.photo||null):null,
+          ['ids/'+me.uid]: prof? (prof.id||0):0
+        };
+        await db.ref('dmChats/'+key+'/meta').update(updates);
+        if(l.ownerUid) await db.ref('dmChats/'+key+'/meta/unread/'+l.ownerUid).transaction(v=>(v||0)+1);
+      }
+      location.hash='inbox';
+    }catch(e){
+      console.error('[PayPlay] Авто-переход в чат:', e);
+      location.hash='inbox';
+    }
+  }, 1500);
 }
 
 function attachLotChat(lotId, lot){
@@ -1199,7 +1239,7 @@ function renderMyLots(){
   const box = $('myLots'); if(!box) return;
   if(!me){ box.innerHTML = '<div class="locked-box">Войдите, чтобы видеть свои лоты</div>'; return; }
   if(!window._lots){ box.innerHTML = '<div class="locked-box">Загрузка…</div>'; return; }
-  const mine = window._lots.filter(l=>l.ownerUid===me.uid);
+  const mine = window._lots.filter(l=>l.ownerUid===me.uid && l.status!=='sold');
   box.innerHTML = mine.length ? mine.map(l=>`
     <div class="log-row">
       <span class="tag game">${esc(l.game)}</span>
