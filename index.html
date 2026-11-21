@@ -627,6 +627,25 @@ db.ref('lots').get().then(s=>{
   renderLots(); renderMyLots();
   console.log('[PayPlay] Резервная загрузка лотов:', arr.length);
 }).catch(e=>console.error('[PayPlay] Резервная загрузка лотов:', e));
+/* Страховка: раз в 5 секунд напрямую сверяемся с базой лотов.
+   Если живой слушатель молчит — каталог всё равно обновится. */
+async function lotsSafetyPull(){
+  try{
+    const s = await db.ref('lots').get();
+    const arr=[];
+    if(s && s.forEach) s.forEach(l=>arr.push({id:l.key, ...(l.val()||{})}));
+    arr.sort((a,b)=>b.createdAt-a.createdAt);
+    const prev = window._lots || [];
+    const sig = a=>a.map(l=>l.id+':'+(l.status||'')).join('|');
+    if(sig(prev)!==sig(arr)){
+      window._lots = arr;
+      renderLots();
+      renderMyLots();
+    }
+  }catch(e){ console.error('[PayPlay] Резервная загрузка лотов:', e); }
+}
+setInterval(lotsSafetyPull, 5000);
+lotsSafetyPull();
 window._users = null;
 listen('users', snap=>{
   try{
